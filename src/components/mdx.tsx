@@ -95,7 +95,7 @@ function createHeading(as: "h1" | "h2" | "h3" | "h4" | "h5" | "h6") {
       return children.map(getTextFromChildren).join("");
     }
     if (typeof children === "object" && children !== null && "props" in children) {
-      return getTextFromChildren(children.props.children);
+      return getTextFromChildren((children.props as { children: React.ReactNode }).children);
     }
     return "";
   };
