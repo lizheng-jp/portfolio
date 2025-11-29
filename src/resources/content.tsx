@@ -251,6 +251,28 @@ const about: About = {
           // },
         ],
       },
+      {
+        title: "Web",
+        description: (
+          <>Web Application Development.</>
+        ),
+        tags: [
+          {
+            name: "Spring Boot",
+            icon: "spring",
+          },
+          {
+            name: "Java",
+            icon: "java",
+          },
+          {
+            name: "JavaScript",
+            icon: "javascript",
+          },
+        ],
+        images: [
+        ],
+      },
     ],
   },
 };
