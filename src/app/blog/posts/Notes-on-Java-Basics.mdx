@@ -1,0 +1,63 @@
+---
+title: Notes on Java Basics
+publishedAt: "2018-06-11" 
+tag: "Android"
+---
+
+- ### 父类构造函数中调用多态行为的函数
+尽量不要在父类构造函数中调用具有多态行为的函数，因为此时子类对象还未初始化，调用子类方法会产生意想不到的结果。
+
+```Java
+public class Test {
+
+    public static void main(String[] args) {
+        new Tesla(100);
+    }
+}
+
+class Car {
+    void run() {
+        System.out.println("Car.run()");  
+    }
+    Car() {
+        System.out.println("Car before run()"); --1
+        run();
+        System.out.println("Car after run()");
+    }
+}
+
+class Tesla extends Car {
+    private int meter = 1;
+
+    Tesla(int r) {
+    	meter = r;
+        System.out.println("Tesla.Tesla().meter = " + meter);
+    }
+
+    void run() {
+        System.out.println("Tesla.run().meter = " + meter);
+    }
+}
+```
+输出结果：
+```
+Car before run()
+Tesla.run().meter = 0
+Car after run()
+Tesla.Tesla().meter = 100
+```
+
+1. 首先调用父类的构造函数
+2. 因为run方法被子类重写，所以调用子类的run方法。但此时meter尚未被赋值，默认为0。
+3. 紧接走完父类的构造函数，再走子类的构造函数，此时meter被赋值（先变1，再变100）。
+
+如果这里将父类的void run()方法前加上private，那么结果又如何呢？
+输出结果：
+```
+Car before run()
+Car.run()
+Car after run()
+Tesla.Tesla().meter = 100
+```
+原因是private所修饰的函数无法被重写，虽然两者名字一样都是run()，但是毫无联系。
+

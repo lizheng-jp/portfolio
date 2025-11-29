@@ -1,0 +1,128 @@
+---
+title: "Custom View Dragging, Snapping, and Click Events in Android"
+publishedAt: "2017-09-10"
+tag: "Android"
+---
+
+### 实现功能
+在一个界面中实现两个视频同时播放，一个为全屏，另一个则是为小窗口，小窗口可以根据手势移动，并且靠近边缘时自动吸附，还能对小窗口进行点击触发事件。主要解决view移动和click冲突的问题
+
+
+### ChlidView
+首先先自定义一个View，大屏和小屏共用这一个类，也就是子View。
+
+```Java
+package com.eric.android.smallwindow;
+
+import android.content.Context;
+import android.view.MotionEvent;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
+import android.widget.FrameLayout;
+
+public class ChildView extends FrameLayout {
+
+    private int lastX;
+    private int lastY;
+    private int screenWidth = MainActivity.mScreenWidth;
+    private int screenHeight = MainActivity.mScreenHeight;
+    private TranslateAnimation translateAnimation;
+    private long startTime = 0;
+    private long endTime = 0;
+
+    public ChildView(Context context) {
+        super(context);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int rawX = (int) event.getRawX();
+        int rawY = (int) event.getRawY();
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                lastX = rawX;
+                lastY = rawY;
+                startTime = System.currentTimeMillis();
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                int dx = rawX - lastX;
+                int dy = rawY - lastY;
+                float x = getX() + dx;
+                float y = getY() + dy;
+                x = x < 0 ? 0 : x > screenWidth - getWidth() ? screenWidth - getWidth() : x;
+                y = y < 0 ? 0 : y + getHeight() > screenHeight ? screenHeight - getHeight() : y;
+                layout((int) x, (int) y, (int) (x + getWidth()), (int) (y + getHeight()));
+                lastX = rawX;
+                lastY = rawY;
+                break;
+
+            case MotionEvent.ACTION_UP:
+                int offX = rawX - lastX;
+                final int offY = rawY - lastY;
+                endTime = System.currentTimeMillis();
+                 if ((endTime - startTime) < 0.1 * 1000L) {
+                        Log.e(TAG, "click");
+                    }
+                setPressed(false);
+                if (getRight() >= screenWidth - 100) {
+                    translateAnimation = new TranslateAnimation(0, screenWidth - getRight(), 0, 0);
+                    translateAnimation.setDuration(500);
+                    translateAnimation.setAnimationListener(new Animation.AnimationListener() {
+                        @Override
+                        public void onAnimationStart(Animation animation) {
+
+                        }
+
+                        @Override
+                        public void onAnimationEnd(Animation animation) {
+                            layout((int) (MainActivity.mScreenHeight * 0.75), getTop() + offY, MainActivity.mScreenHeight, getBottom() + offY);
+                            clearAnimation();
+                        }
+
+                        @Override
+                        public void onAnimationRepeat(Animation animation) {
+
+                        }
+                    });
+                    this.startAnimation(translateAnimation);
+                    lastX = 1440;
+                    lastY = rawY;
+                } else if (getLeft() <= 100) {
+                    translateAnimation = new TranslateAnimation(0, -getLeft(), 0, 0);
+                    translateAnimation.setDuration(500);
+                    translateAnimation.setAnimationListener(new Animation.AnimationListener() {
+                        @Override
+                        public void onAnimationStart(Animation animation) {
+
+                        }
+
+                        @Override
+                        public void onAnimationEnd(Animation animation) {
+                            layout(0, getTop() + offY, (int) (MainActivity.mScreenHeight * 0.25), getBottom() + offY);
+                            clearAnimation();
+                        }
+
+                        @Override
+                        public void onAnimationRepeat(Animation animation) {
+
+                        }
+                    });
+                    this.startAnimation(translateAnimation);
+                    lastX = 0;
+                    lastY = rawY;
+                } else {
+                    layout(getLeft() + offX, getTop() + offY,
+                            getRight() + offX, getBottom() + offY);
+                }
+                break;
+
+        }
+        return true;
+    }
+}
+
+```
+### 关键点
+通过up到down的时间差，来判断是点击click还是移动move。

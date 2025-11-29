@@ -1,0 +1,25 @@
+---
+title: "About Binder"
+publishedAt: "2018-11-21" 
+tag: "Android"
+---
+
+- ### Binder是什么？
+    Binder是一个很复杂的东西，简单来说，Bindler是Android里的一个类，它实现了IBinder接口。从IPC角度来说，它是一种跨进程通信的方式。从Android Framework角度来说，它是ServiceManager连接各种Manager的桥梁，从Android应用层来说，它是客户端和服务端进行通信的媒介。
+
+- ### Binder优点
+    Android是基于Linux的，为什么Linux那么多跨进程通信方式，Android并没有用呢？Socket是一种通用的接口，为了兼容其他，其传输效率低，开销大，需要进行数据拷贝两次以上，而共享内存虽然不需要拷贝数据，但是客户端和服务端双方需要知道对方许多信息，控制复杂难以使用，而Binder数据拷贝次数只需一次，而且可以通过UIP和PID确保安全性。
+
+- ### Binder原理
+    我们知道进程间是不能直接交互传递数据的。不同进程之间内存是不共享的，但是内核空间却是共享的，所以进程可以通过可共享的内核内存空间来完成底层的通信工作。Binder通信采用的是C/S架构，也就是所谓的客户端和服务端。它包含了Client、Server、ServiceManager以及binder驱动。这里的ServiceManager是Native层的而非framework层的。
+
+- ### Binder建立流程
+  1.首先Server进程要先在ServiceManager注册Service，这里可以注册一个或多个。Server需要去内核中的Binder驱动中去创建一个Binder实体以及其引用，将其打包传递给ServiceManager。  
+  2.ServiceManager收到包后，取出名字和引用，将其填入表中。   
+  3.当Client想ServiceManager申请Service请求，就可以通过Binder的名字获取它的引用，Client得到引用后，便可使用Server中的方法，由此完成通信。   
+  **这里有个有趣的地方，ServiceManager和Server都是进程，他们也是需要进程间通信的，如何实现为了进程间通信而进程间通信呢？**   
+  其实代码中设置了ServiceManager的Binder的handler值恒为0，也是就默认值。这个不需要注册，默认它就是与ServiceManager通信的。
+
+- ### 后续
+  Android系统里大量运用了Binder进行进程间通信，可见其重要性，这里也只是非常非常简略的概括了其原理，实际要复杂许多，未完待续。
+  

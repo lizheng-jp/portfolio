@@ -1,0 +1,40 @@
+---
+title: "Anomaly Detection and Classification in Camera modules"
+publishedAt: "2024-12-01"
+summary: ""
+images:
+#   - "/images/projects/project-01/cover-02.jpg"
+  - "/images/projects/ml/2025-02-12-171539.jpg"
+---
+
+## Overview
+In this project, I used several machine learning model to detect and classify anomalies in camera modules. The goal was to create a pipeline that detects and classifies anomalies in camera modules. By integrating machine learning models, the accurancy of the detection was increased significantly.
+
+## Key Features
+- **Data Preprocessing**: Developed a custom data preprocessing pipeline that extracts features from the images and prepares them for the machine learning models.Included remove background, resize, and convert to grayscale.
+- **Tabular-Image**:Used a multimodal model that combines tabular and image data to do classification of anomalies.
+
+## Library Used
+- **Pytorch**: For building the machine learning models.
+- **OpenCV**: For image processing.
+- **Numpy**: For numerical operations.
+- **Pandas**: For tabular data processing.
+- **Faiss**: For similarity search.
+
+## Tools Used
+- **MLFlow**: For tracking the machine learning models.
+- **Git**: For code version control.
+
+## Model Used
+- **Segmentation Anything Model**: Used to remove the background of the images.
+- **Patch Core**: Used to extract features from the good images and sampling the features, then compare the features of the bad images to detect anomalies.
+- **Image and Tabular Model**: Used to do classification and anomaly detection.
+
+## Challenges and Learnings
+- **Image background removal**: Since the images of the camera modules were taken in different environments, the background of the images was different(like position and white balance). This made it difficult to extract features from the images.
+- **Model Selection**: Selecting the right machine learning model was a challenge. I tried several deep learning models to do classification and anomaly detection.
+- **Development environment**: Since multiple models were used, it is necessary to identify incompatible packages fore replacement and make appropriate modifications to the code.
+- **Labeling**: 
+
+## Outcome
+- Create a pipeline that detects and classifies anomalies in camera modules. The accurancy of Anomaly Detection has arrived to 92%.

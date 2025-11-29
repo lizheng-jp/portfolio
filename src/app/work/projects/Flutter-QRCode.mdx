@@ -1,0 +1,24 @@
+---
+title: "QRcode App with Flutter"
+publishedAt: "2025-06-10"
+summary: "The main task of this project is to display employees’ personal QR codes on both iOS and Android platforms using Flutter. Key technical aspects include the use of HTTPS certificates, background automatic updates, silent notifications, and embedding WebView."
+images: 
+---
+
+### Main Task
+The main task of this project is the following:
+- Display employees’ personal QR codes on both iOS and Android devices.
+- Using WebView to get the result of login, then display the QR code.
+- Implementing HTTPS certificates for secure communication.
+- Enabling background updates in the early morning to reduce server load. 
+- Implementing silent notifications to trigger updates without user interaction.
+
+### Problems 
+When use flutter to develop this app, I encountered several challenges, especially with the background updates.
+The app needs to fetch the latest QR code data from the server every day at 3 AM(after the server genertated the QR code).
+At the beginning, I choosed Flutter workmanger to do peroid task to fetch data from server. But there are two problems in this case.
+1, Considering the battery effience rule of Android(doze mode) and iOS(Bgbackground), after test, I found it's almost impossible to let app use network at background task at the specified time.
+2, Flutter workmanger library(v 0.5.2) has issues itself, it can't work well in iOS.
+
+Then to make background able to fetch from server successfully, i use firebase message notifications to trigger background task.
+

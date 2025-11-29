@@ -1,0 +1,198 @@
+---
+title: "Summary of MVP Framework"
+publishedAt: "2018-09-20"
+tag: "Android"
+---
+
+- ### 前言
+&emsp;&emsp;在我看来，一个程序员如何从会写代码到写好代码，懂的根据项目需求合理的架构是一个关键。可能一些公司或程序员为了进度，不考虑架构，只为了满足需求，那么后期维护起来会异常麻烦。
+
+- ### MVP应用背景
+&emsp;&emsp;在我们最初写Android代码时，经常在Activity里完成数据交互，UI更新，逻辑处理等操作，这导致我们的Activity里的代码可能成千上万行，当你想修改一个功能时，不仅修改的麻烦，而且极容易导致其他功能出现问题。那如何将Activity里的代码拆分开来，使代码变得一目了然呢？这里我们就可以使用MVP来帮助我们。
+
+- ### MVP是什么？
+&emsp;&emsp;学过编程的应该知道MVC，也就是Model,View,Controller。Activity在MVC中属于Controller层，但因为Android的特殊性，导致View层的操作大多只能在Activity中完成，导致了Activity的臃肿。这时候MVP应运而生，P代表了Presenter，作用是将View和Model连接起来，让它们解耦。View通过Presenter来操作数据，Model通过Presenter来更新View。
+
+- ### MVP的优点和缺点
+&emsp;&emsp;的确使用MVP可能不会让你的程序运行的更快，但是对于开发者讲维护更加便利，逻辑更加清晰，降低了代码的耦合度。  
+&emsp;&emsp;缺点呢说实话，目前好像还没发现，如果硬要我找出一个的话，就是接口变得有点多？
+
+- ### MVP的使用
+&emsp;&emsp;当时是读了Google官方的[Sample](https://github.com/googlesamples/android-architecture/tree/todo-mvp)，然后对现有项目进行架构替换。下面就简单的搭一个框架。
+
+#### 1. BaseView
+```
+public interface BaseView<T> {
+    void setPresenter(T presenter);
+}
+```
+#### 2. BasePresenter
+```
+public interface BasePresenter {
+    void start();
+}
+```
+&emsp;&emsp;这两个是View和Presenter的基类，所有的View和Presenter都会重写这里面的方法。
+#### 3. MessageContact
+```
+public interface MessageContact {
+    interface View extends BaseView<Presenter> {
+
+        void showToast(String msg);
+
+    }
+
+    interface Presenter extends BasePresenter {
+
+        void getData();
+        void sendMessage(String msg);
+    }
+}
+
+```
+&emsp;&emsp;这是一个契约类，它定义了一个模块的View和Prestener的所有接口，这里就简单的写了几个抽象的方法，来实现客户端向服务端收发信息。
+
+#### 4.MessageFragment
+```
+public class MessageFragment extends Fragment implements MessageContact.View{
+
+    public static MessageFragment newInstance() {
+        return new MessageFragment();
+    }
+
+    private MessageContact.Presenter presenter;
+    private Button button;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        button = new Button(getActivity());
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                presenter.sendMessage("send message!");
+            }
+        });
+    }
+
+    @Override
+    public void showToast(String msg) {
+        //todo
+    }
+
+    @Override
+    public void setPresenter(MessageContact.Presenter presenter) {
+        this.presenter = presenter;
+    }
+}
+```
+&emsp;&emsp;这里我们用一个Fragment来处理View的操作，实现点击button，向服务端发送信息，还有一个就是接受P层的回调来显示服务端发来的信息。
+
+#### 5.MessagePresenter
+```
+public class MessagePresenter implements MessageContact.Presenter{
+
+    private final MessageRepository messageRepository;
+    private final MessageContact.View mMessageView;
+
+    public MessagePresenter(MessageRepository messageRepository, MessageContact.View mMessageView) {
+        this.messageRepository = messageRepository;
+        this.mMessageView = mMessageView;
+        mMessageView.setPresenter(this);
+    }
+
+    @Override
+    public void getData() {
+        messageRepository.getMessageCallback(new ServerDataSource.MessageCallback() {
+            @Override
+            public void callback(String msg) {
+                mMessageView.showToast(msg);
+            }
+        });
+    }
+
+    @Override
+    public void sendMessage(String msg) {
+        messageRepository.sendMessageToServer(msg);
+    }
+
+    @Override
+    public void start() {
+
+    }
+}
+```
+&emsp;&emsp;这里就是充当了界面与数据之间的桥梁，将主要的逻辑都放在这层处理，比如信息的过滤，增删改查等。
+
+#### 6.ServerDataSource
+```
+public interface ServerDataSource {
+    interface MessageCallback{
+        void callback(String msg);
+    }
+
+    void getMessageCallback(MessageCallback messageCallback);
+
+    void sendMessageToServer(String msg);
+}
+```
+&emsp;&emsp;这里主要是数据的处理，用来处理数据的发送和接受。
+
+#### 7.MessageRepository
+```
+public class MessageRepository implements ServerDataSource {
+
+    private MessageCallback messageCallback;
+    private static MessageRepository INSTANCE = null;
+
+    private MessageRepository() {
+
+    }
+
+    public static MessageRepository getInstance(){
+        if (INSTANCE == null) {
+            INSTANCE = new MessageRepository();
+        }
+        return INSTANCE;
+    }
+
+    @Override
+    public void getMessageCallback(MessageCallback messageCallback) {
+        this.messageCallback = messageCallback;
+    }
+
+    @Override
+    public void sendMessageToServer(String msg) {
+        //todo
+    }
+
+}
+```
+&emsp;&emsp;这里可以算是M层，比如通过Http去服务器请求完整的数据等，做一些json的解析，接受第三方sdk的回调等，都在这里处理，而P层可以说是对这些数据进行逻辑处理。
+
+#### 7.MainActivity
+```
+public class MainActivity extends AppCompatActivity {
+
+    private MessageFragment messageFragment;
+    private MessagePresenter messagePresenter;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        if (messageFragment == null) {
+            messageFragment = MessageFragment.newInstance();
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            transaction.add(R.id.message_fragment, messageFragment);
+            transaction.commit();
+        }
+
+        messagePresenter = new MessagePresenter(MessageRepository.getInstance(), messageFragment);
+    }
+}
+```
+&emsp;&emsp;可以说MainActivity的作用就是把这三者连起来，大大减少了MainActivity里的代码量。
+
+- ### MVP的总结
+&emsp;&emsp;其实MVP的方式不止这一种，根据业务使用不同的MVP。可能开始适应MVP时，需要一定的学习成本，但运用熟练以后，带来的好处是显然的。

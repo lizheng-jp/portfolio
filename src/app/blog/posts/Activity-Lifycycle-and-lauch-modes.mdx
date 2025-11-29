@@ -1,0 +1,53 @@
+---
+title: "Acticity Lifecycle and Launch Modes"
+publishedAt: "2018-11-19"
+# image: "/images/gallery/img-02.jpg"
+summary: "Activity lifecycle handles transitions, state saving, and priority management, while launch modes control task behavior, with TaskAffinity affecting task assignments and Activities started explicitly or implicitly."
+tag: "Android"
+---
+
+- ### Activity生命周期
+正常的生命周期这里就不叙述了，下面总结一些特殊的情况。
+
+1. 从一个Activity跳转到另一个Activity时，先执行第一个Activity的onPause方法，再去执行第二个Activity的onCreate、onStart、onResume，再执行第一个Activity的onStop。
+2. onStart和onStop是从Activity是否可见的角度来回调的，而onResume和onPause是从Activity是否位于前台这个角度而回调的，其他没有什么区别。
+3. onPause、onStop不能执行耗时操作否则影响体验或导致ANR。
+4. 异常情况下，Activity会被销毁，此时系统会自动调用onSaveInstanceState保存当前状态，这个行为可能在Activity的onPause前后调用，但一定在onStop前调用。存储的Bundle对象，会在Activity恢复时传递给onRestoreInstanceState，从时序来说，它的调用时机在onStart后。这里值得一提的是，数据的保存和恢复模式与View绘制过程、事件分发机制相似。都是一层层的传递到父级最后再往下传递。
+5. 当我们在onInstance中存储时，然后等Activity销毁重建后，可以从onRestoreInstanceState或者onCreate中取值，两者的区别是如果onRestoreInstaceState被调用，说明Bundle里一定有值，无需额外判空，而onCreate则不行。
+6. 系统只会在Activity异常终止的时候才会调用onSaveInstanceState和onRestoreInstaceState，如果被异常销毁的Activity不会再显示，那么这个过程将不会触发。
+7. Activity优先级排序，前台Activity > 可见但非前台Activity > 后台Activity。如果一个进程中没有四大组件执行，那么这个进程很容易被杀死，解决的办法可以是将它放到Service中。
+
+- ### Activity的启动模式
+1. standard
+&emsp;&emsp;标准模式，也是默认模式。不管该实例是否存在，都会重新创建一个新的实例，谁启动了这个Activity，那么这个Activity就运行在启动它的那个Activity的栈中。这里需要注意的是，用一个非Activity类型的Context去启动Standard模式的Activity时，会报类似Calling startActivity from outside on an Activity context requires the FLAG_ACTIVITY_NEW_TASK flag的错，这是因为没有任务栈的缘故，所以只需新建一个即可。
+2. singleTop
+&emsp;&emsp;栈顶复用模式。如果新的Activity已经位于任务栈的栈顶，则此Activity不会被重新创建，但它的onNewIntent会被回调。这个Activity的onCreate和onStart也不会被系统调用。但如果新Activity实例存在而且不是位于栈顶，则新的Activity仍会创建。如果栈内有ABCD的话，此时启动一个模式为singleTop的B，那么最后就变成了ABCDB。
+3. singleTask
+&emsp;&emsp;栈内复用模式。其实也就是一种单例模式，只有这个Activity在栈中存在，那么就不会创建实例，系统也会回调其onNewIntent方法，并将这个Activity调到栈顶，清除此Activity上的所有Activity。
+4. singleInstance
+&emsp;&emsp;单实例模式，singleTask加强版。拥有singleTask的所有特性，并且这个被创建的Activity会单独存在于一个新的任务栈中。
+
+- ### TaskAffinity
+&emsp;&emsp;这个参数标识了一个Activity所需要的任务栈的名字，默认情况下为应用的包名。可以自定义TaskAffinity属性，但是不能与包名相同。任务栈分为前台任务栈和后台任务栈，后台任务栈中的Activity处于暂停状态。当TaskAffinity与singleTask启动模式相匹配的时候，待启动的Activity就会运行在名字与TaskAffinity相同的任务栈中。
+
+- ### Activity显示调用和隐式调用
+1.显示调用  
+ 需要明确知道被启动对象的信息，包括包名和类名。这个比较简单，如以下代码。
+```
+Intent intent = new Intent(MainActivity.this, SecondActivity.class);
+startActivity(intent);
+```
+
+<CodeBlock
+    compact
+    codes={[
+        {
+            code: 'Intent intent = new Intent(MainActivity.this, SecondActivity.class);\n    startActivity(intent);\n',
+            label: 'Java Example',
+            language: 'java'
+        },
+    ]}
+    copyButton
+/>
+2.隐式调用  
+需要Intent能够匹配的组件的IntentFilter中所设置的过滤信息。一般有action、category、data。一个Activity可以有多个intent-filter，只要匹配其中一个即可启动Activity，但一个Intent需要同时匹配action、category、data才算完全匹配。还有一点需要注意的是，通过隐式调用，可能找不到相匹配的Activity，所以需要通过resolveActivity方法来判断Activity是否存在。

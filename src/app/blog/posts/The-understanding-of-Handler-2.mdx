@@ -1,0 +1,135 @@
+---
+title: "The understanding of Handler[2]"
+publishedAt: "2019-03-24"
+tag: "Android"
+---
+
+## Handler深入理解
+
+### 前言
+
+之前我们分析过Handler的用法，明白Handler是用来进行消息的传递的，而且往往被用来进行UI的更新，今天我们要更深一步挖掘里面的知识。
+
+
+### Handler回顾
+
+Message、MessageQueue、Looper、Handler是Handler机制的四大关键类，缺一不可。Message负责装载消息（可以是对象），MessageQueue负责管理消息队列，Looper负责循环从消息队列中取出消息进行分发，Handler则负责向消息队列中发送消息以及负责接收处理Looper发来的消息。
+
+#### Looper
+
+可能有人会问，我用Handler的时候怎么没有看到这个类？实际上当我们在主线程使用Handler时，主线程默认初始化了Looper，不需要我们再去进行初始化。（但在子线程就需要我们去初始化了）
+
+我们可以看到Activity类中attach()方法里的ActivityThread类(即主线程、UI线程)，这个类在一开始对Looper进行了初始化。
+
+
+ActivityThread类
+```java
+public final class ActivityThread extends ClientTransactionHandler {
+...
+final Looper mLooper = Looper.myLooper();
+...
+}
+```
+Looper类
+```java
+...
+public static Looper myLooper() {
+        return sThreadLocal.get();
+    }
+...
+```
+
+子线程中，我们需要初始化Looper，下面简单写一个子线程Handler的使用方法。
+
+```java
+//LooperThread类
+class LooperThread extends Thread {
+    public Handler mHandler;
+
+    public void run() {
+        Looper.prepare();   
+      
+        mHandler = new Handler() {  
+            public void handleMessage(Message msg) {
+                
+            }
+        };
+
+        Looper.loop(); 
+    }
+}
+```
+Looper类
+```java
+public final class Looper {
+...
+static final ThreadLocal<Looper> sThreadLocal = new 	ThreadLocal<Looper>();
+...
+public static void prepare() {
+        prepare(true);
+    }
+
+private static void prepare(boolean quitAllowed) {
+        if (sThreadLocal.get() != null) {
+            throw new RuntimeException("Only one Looper may be created per thread");
+        }
+        sThreadLocal.set(new Looper(quitAllowed));
+    }
+}
+```
+
+我们可以看到不管是主线程还是子线程的Looper，最后都和这个ThreadLocal类有关。
+
+最后如果我们不需要再处理MessageQueue里的消息，需要对Looper进行退出。Looper退出有两个方法。
+
+```Java
+public void quit() {
+        mQueue.quit(false);
+    }
+public void quitSafely() {
+        mQueue.quit(true);
+    }
+```
+
+调用quit()方法后，所有发送到队列的消息都会失败，但这个方法存在的问题就是，可能还有消息没有发送完，这时候立马退出会存在安全隐患。所以就有了quitSafely()的方法，它可以保证调用以后，队列中剩余的消息（不包括延时消息）全都处理完毕再退出。
+
+#### MessageQueue
+
+我们可以看到，Looper构造函数中对MessageQueue进行了初始化。
+
+Looper类
+```Java
+private Looper(boolean quitAllowed) {
+        mQueue = new MessageQueue(quitAllowed);
+        mThread = Thread.currentThread();
+    }
+```
+
+需要注意的是虽然是说消息队列，但是内部却不是使用队列的数据结构而是使用了单链表，可能是考虑对消息的插入以及删除，单链表的效率更高一些。
+
+Message也不是直接添加到MessageQueue中的，我们在编写代码时候也没有去手动进行初始化MessageQueue的操作，而是通过Handler来进行处理。
+
+MessageQueue是消息机制Java层与C++层连接的地方，大部分的方法都交给了native层进行了处理。
+
+### Looper为什么不会阻塞主线程？
+
+我们知道Looper是一个死循环，那为什么它在主线程中不会导致线程卡死？
+
+首先我们要知道，无论是线程还是进程，对于cpu来讲都是一段可执行的代码，执行完以后就会退出。那么想一下，如何保证你的应用并不会自己退出呢？
+
+那么就是写一个死循环啦，印象中死循环会特别消耗CPU资源，但实际上并没有，这是为什么？简单来说，是因为当MessageQueue没有消息时，主线程会阻塞，大多数情况下主线程处于休眠状态，并不会消耗太多CPU资源。
+
+所以只有当事件阻塞了Looper，才有可能导致主线程卡死。
+
+### 快记
+
+- 一个Looper对应一个MessageQueue
+
+- 一个线程有且只有一个Looper
+
+- 一个Looper可以对应多个Handler
+
+- 主线程不需要手动去初始化Looper，而子线程需要
+
+  
+

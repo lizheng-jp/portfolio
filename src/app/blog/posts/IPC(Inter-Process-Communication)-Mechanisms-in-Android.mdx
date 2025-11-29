@@ -1,0 +1,39 @@
+---
+title: "IPC (Inter-Process Communication) Mechanisms in Android"
+publishedAt: "2018-09-16"
+tag: "Android"
+---
+
+- ### 什么是IPC？
+&emsp;&emsp;IPC(Inter-Process Communication),指的是进程间的通信。一般来说，一个应用就有一个进程，它们有各自的内存，互不干涉。那么如何在两个进程之间进行通信呢，那么就需要IPC。首先我们得清楚，**线程是CPU调度的最小单位**，一个进程中可以有1个或者多个线程，一般来说一个app就是一个进程，可以只有一个主线程也可以同时拥有主线程和子线程，主线程和子线程的通信的方式可以用Handler。
+
+- ### 什么时候需要IPC？
+&emsp;&emsp;比如在早期，设备内存欠缺的时候，系统给每个app分配的内存是有限的，大约16M左右，如果能开启多进程，那么能提高内存的使用。再或者两个应用需要获取对方的数据，通过ContentProvider去获取数据，都是需要IPC的。
+
+- ### IPC传输的数据有什么要求？
+&emsp;&emsp; 需要序列化，可参考之前的文章。
+
+- ### Android的IPC有几种方式？
+
+#### 1.Bundle  
+
+&emsp;&emsp;当我们通过Intent从一个进程跳转到另一个进程的Activity、Service或者Receiver时，可以带着Bundle一起传过去，只要是Bundle支持的类型，都可以进行进程间通信。  
+#### 2.文件共享
+
+&emsp;&emsp;
+简单来说就是一个进程可以序列化一个对象到系统文件，或者往这个文件里写入需要的信息，另一个进程就可以读取这个文件里面的内容。需要注意的是，**序列化前和序列化后的对象虽然内容一致，但是已经是两个不同的对象了**。SharedPreference就是其中的一种，但这种方式的弊端就是高并发的读写不可靠。
+
+#### 3.Messenger
+
+&emsp;&emsp;它的底层是AIDL，因为它一次只处理一个请求，所以在服务端不需要考虑线程同步问题。  
+
+#### 4.AIDL
+
+&emsp;&emsp;AIDL也是一种IPC方式，Messager本质也是AIDL，但AIDL可以处理大量并发且可以调用服务端的方法。此处待补充...
+
+#### 5.ContentProvider
+
+&emsp;&emsp;身为四大组件之一的ContentProvider，是Android专门用来在不同进程中数据共享的方式，可以简单的理解成是一个数据库，它的底层实现是Binder,
+
+#### 6.Socket
+&emsp;&emsp;之前一篇文章也详细介绍过，这里就不多说了。

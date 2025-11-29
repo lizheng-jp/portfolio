@@ -1,0 +1,506 @@
+---
+title: "Grafana環境構築とAPI連携"
+publishedAt: "2025-10-03"
+tag: "Work"
+---
+
+## 目次
+
+1. [概要](#1-概要)
+2. [環境準備](#2-環境準備)
+3. [Grafana の Docker Compose 展開](#3-grafana-の-docker-compose-展開)
+4. [Infinity プラグインの設定](#4-infinity-プラグインの設定)
+5. [バックエンド API との連携](#5-バックエンド-api-との連携)
+6. [Dashboard と Panel の作成](#6-dashboard-と-panel-の作成)
+7. [動的パラメータの設定 (Variables)](#7-動的パラメータの設定-variables)
+8. [フロントエンド連携](#8-フロントエンド連携)
+9. [Panel JSON のエクスポート](#9-panel-json-のエクスポート)
+10. [トラブルシューティング](#10-トラブルシューティング)
+11. [参考リンク](#11-参考リンク)
+
+---
+
+## 1. 概要
+
+### 1.1 Grafana とは
+
+Grafana は、メトリクス、ログ、トレースなどのデータを可視化するためのオープンソースの分析・監視プラットフォームです。
+
+### 1.2 主な使用シーン
+
+- リアルタイムデータの可視化とモニタリング
+- REST API からのデータ取得と分析
+- ビジネスメトリクスのダッシュボード作成
+- システムパフォーマンスの監視
+
+### 1.3 本 Wiki の目的
+
+Docker を使用した Grafana の展開から、Infinity プラグインによる API 連携、データ可視化、Panel JSON のエクスポートまでの一連のフローを解説します。
+
+---
+
+## 2. 環境準備
+
+### 2.1 必要なソフトウェア
+
+- Docker (20.10 以上推奨)
+- Docker Compose (v2.0 以上推奨)
+- Git
+
+### 2.2 動作環境
+
+- **OS**: Linux 
+- **メモリ**: 最低 2GB RAM
+- **ディスク**: 1GB 以上の空き容量
+
+### 2.3 ネットワーク要件
+
+- インターネット接続 (プラグインダウンロード用)
+- プロキシ環境下での設定が必要な場合は、Docker にプロキシ設定を追加
+- ポート 3000 (Grafana) と 8888 (バックエンド API) が利用可能であること
+
+---
+
+## 3. Grafana の Docker Compose 展開
+
+### 3.1 ディレクトリ構成
+
+```plaintext
+project/
+├── docker-compose.yml
+├── .env
+├── .env.grafana
+├── webapps/
+├── logs/
+├── resources/
+└── tomcat/
+    └── context.xml
+```
+
+### 3.2 docker-compose.yml の作成
+
+```yaml
+services:
+  app:
+    image: tomcat:11-jdk21
+    container_name: backend-app
+    env_file:
+      - ./.env
+    networks:
+      - internal-net
+      - external-net
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./webapps:/usr/local/tomcat/webapps
+      - ./logs:/var/log/app
+      - ./resources:/opt/app/resources
+      - ./tomcat/context.xml:/usr/local/tomcat/conf/context.xml
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+    env_file:
+      - ./.env.grafana
+    networks:
+      - internal-net
+    restart: unless-stopped
+
+volumes:
+  grafana_data:
+    driver: local
+
+networks:
+  internal-net:
+    driver: bridge
+  external-net:
+    external: true
+```
+
+### 3.3 環境ファイルの設定
+
+**.env.grafana (オプション)**
+
+```env
+GF_SERVER_ROOT_URL=http://localhost:3000
+GF_ANALYTICS_REPORTING_ENABLED=false
+GF_USERS_ALLOW_SIGN_UP=false
+```
+
+### 3.4 Grafana の起動
+
+```bash
+# コンテナの起動
+docker-compose up -d
+
+# ログの確認
+docker-compose logs -f grafana
+
+# コンテナの状態確認
+docker-compose ps
+```
+
+### 3.5 初回アクセス
+
+1. ブラウザで `http://<サーバーのIPまたはドメイン>:3000` にアクセス
+2. デフォルトの認証情報でログイン:
+   - **Username**: `admin`
+   - **Password**: `admin`
+3. 初回ログイン後、パスワード変更を求められます
+
+---
+
+## 4. Infinity プラグインの設定
+
+### 4.1 Infinity プラグインとは
+
+Infinity データソースプラグインは、REST API、CSV、JSON、GraphQL など、様々な形式のデータを Grafana に取り込むことができます。
+
+### 4.2 プラグインのインストール方法
+
+**方法1: 環境変数 (推奨 - docker-compose.yml に記載済み)**
+
+```yaml
+environment:
+  GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource
+```
+
+**方法2: CLI (コンテナ内で実行)**
+
+```bash
+docker exec -it grafana grafana-cli plugins install yesoreyeram-infinity-datasource
+docker restart grafana
+```
+
+### 4.3 プラグインの確認
+
+1. Grafana にログイン
+2. 左メニュー → **Connections** → **Data sources**
+3. **Add data source** をクリック
+4. 検索バーに "Infinity" と入力して表示されれば成功
+
+---
+
+## 5. バックエンド API との連携
+
+### 5.1 データソースの追加
+
+1. **Connections** → **Data sources** → **Add data source**
+2. **Infinity** を選択
+
+![データソース追加](/images/blog/grafana/grafana-1.png)
+
+3. データソース名を設定 (例: `Backend API`)
+
+### 5.2 Base URL の設定
+
+**重要:** Docker 環境では、コンテナ間通信にコンテナ名を使用します。
+
+```plaintext
+Base URL: http://app:8080
+```
+
+![URL設定](/images/blog/grafana/grafana-3.png)
+
+### 5.3 認証設定 (必要に応じて)
+
+- **Basic Auth**: ユーザー名とパスワード
+- **Bearer Token**: API トークン
+- **Custom Headers**: カスタムヘッダー (例: `X-API-Key`)
+
+### 5.4 バックエンド API の例
+
+**エンドポイント例:**
+
+```plaintext
+GET http://app:8080/api/statistics
+```
+
+**レスポンス形式 (JSON):**
+
+```json
+[
+    {
+        "name": "部門A",
+        "value": 0.3,
+    },
+    {
+        "name": "部門B",
+        "value": 0.2,
+    },
+    {
+        "name": "部門C",
+        "value": 0.5,
+    }
+]
+```
+
+---
+
+## 6. Dashboard と Panel の作成
+
+### 6.1 Dashboard の作成
+
+1. 左メニュー → **Dashboards** → **New** → **New Dashboard**
+2. **Add visualization** をクリック
+
+![Dashboard作成](/images/blog/grafana/grafana-4.png)
+
+### 6.2 データソースの選択
+
+1. データソースから **Backend API** (Infinity) を選択
+
+![データソース選択](/images/blog/grafana/grafana-5.png)
+
+### 6.3 クエリの設定
+
+1. **Type**: JSON
+2. **Parser**: Backend
+3. **Source**: URL
+4. **Format**: Bar chart (データに応じて選択)
+5. **URL**: `/api/statistics`
+6. **Method**: GET
+
+![コンソール画面](/images/blog/grafana/grafana-6.png)
+
+### 6.4 フィールドマッピング
+
+**Columns** タブでフィールドを設定:
+- `name` → Label
+- `value` → Value
+
+---
+
+## 7. 動的パラメータの設定 (Variables)
+
+### 7.1 Variables とは
+
+Dashboard 全体で使用できる動的な変数で、フィルタリングやパラメータ化に使用します。
+
+### 7.2 Variables の作成手順
+
+#### ステップ1: Settings へ移動
+
+1. Dashboard 右上の歯車アイコン → **Settings**
+
+![Dashboards Settings](/images/blog/grafana/grafana-8.png)
+
+#### ステップ2: Variables を追加
+
+2. **Variables** タブを選択 → **Add variable**
+
+![Variables選択](/images/blog/grafana/grafana-9.png)
+
+#### ステップ3: Variable の設定
+
+3. 以下の項目を設定:
+
+![Variables設定](/images/blog/grafana/grafana-10.png)
+
+- **Name**: `locationId` (変数名)
+- **Type**: `Custom` または `Query`
+- **Custom options**: `1,2,3,4` (カンマ区切り)
+- **Multi-value**: 複数選択を許可するか
+- **Include All option**: "All" オプションを含めるか
+
+#### その他の Variables 例:
+
+```plaintext
+Name: from
+Type: Text box
+Default value: 2025-09-01
+
+Name: to
+Type: Text box
+Default value: 2025-09-16
+
+Name: locationIds
+Type: Custom
+Custom options: 1,2,3,4,5
+
+Name: userId
+Type: Text box
+Default value: S144XXX
+```
+
+### 7.3 Panel での Variables 使用
+
+#### ステップ4: API URL に Variables を設定
+
+```plaintext
+URL: /api/statistics?target=${target}&from=${from}&to=${to}&locationIds=${locationIds}&userId=${userId}
+```
+
+![DataSource URL パラメータ設定](/images/blog/grafana/grafana-11.png)
+
+**注意事項:**
+- Variables は `${variableName}` の形式で参照
+- URL エンコードが自動的に行われる
+- Dashboard 上部に Variables のドロップダウンが表示される
+
+---
+
+## 8. フロントエンド連携
+
+### 8.1 Grafana Panel の埋め込み
+
+HTML ページに Grafana Panel を iframe で埋め込むことができます。
+
+**HTML 例:**
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>統計ダッシュボード</title>
+    <style>
+        .grafana-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>部門別統計</h1>
+    <iframe 
+        id="grafanaFrame" 
+        src="http://localhost:3000/d-solo/4d0c2232-432d-4ba1-9ffc-80db26a7bdf8/statistic?orgId=1&var-target=department&var-from=2025-09-01&var-to=2025-09-16&var-locationIds=1&var-userId=S144929&panelId=1&__feature.dashboardSceneSolo=true" 
+        class="grafana-frame" 
+        frameborder="0">
+    </iframe>
+</body>
+</html>
+```
+
+### 8.2 URL パラメータの解説
+
+- `d-solo/[dashboard-uid]/[dashboard-name]`: ダッシュボード ID と名前
+- `orgId=1`: 組織 ID
+- `var-target=department`: Variable の値を指定
+- `panelId=1`: 表示する Panel の ID
+- `&__feature.dashboardSceneSolo=true`: ソロモード表示
+
+### 8.3 動的 URL 生成 (JavaScript)
+
+```javascript
+function updateGrafanaFrame(params) {
+    const baseUrl = 'http://localhost:3000/d-solo/4d0c2232-432d-4ba1-9ffc-80db26a7bdf8/statistic';
+    const queryParams = new URLSearchParams({
+        orgId: '1',
+        'var-target': params.target || 'department',
+        'var-from': params.from || '2025-09-01',
+        'var-to': params.to || '2025-09-16',
+        'var-locationIds': params.locationIds || '1',
+        'var-userId': params.userId || 'S144929',
+        panelId: params.panelId || '1',
+        '__feature.dashboardSceneSolo': 'true'
+    });
+    
+    document.getElementById('grafanaFrame').src = `${baseUrl}?${queryParams.toString()}`;
+}
+
+// 使用例
+updateGrafanaFrame({
+    target: 'location',
+    from: '2025-10-01',
+    to: '2025-10-03'
+});
+```
+
+---
+
+## 9. Panel JSON のエクスポート
+
+### 9.1 Panel JSON のエクスポート方法
+
+1. Dashboard を開く
+2. Panel タイトル → **Edit**
+3. 右上の **Panel JSON** アイコンをクリック
+4. JSON をコピー
+
+### 9.2 Dashboard JSON のエクスポート
+
+1. Dashboard 右上の共有アイコン → **Export**
+2. **Export for sharing externally** をチェック
+3. **Save to file** または JSON をコピー
+
+### 9.3 JSON のインポート
+
+1. **Dashboards** → **New** → **Import**
+2. JSON を貼り付けまたはファイルをアップロード
+3. データソースを選択
+4. **Import** をクリック
+
+### 9.4 主要な JSON フィールド
+
+```json
+{
+  "targets": [
+    {
+      "datasource": "Backend API",
+      "refId": "A",
+      "type": "json",
+      "url": "/api/statistics"
+    }
+  ],
+  "fieldConfig": {
+    "defaults": {
+      "unit": "percent",
+      "decimals": 1,
+      "thresholds": {
+        "steps": [
+          { "value": 0, "color": "green" },
+          { "value": 50, "color": "yellow" },
+          { "value": 80, "color": "red" }
+        ]
+      }
+    }
+  }
+}
+```
+
+---
+
+## 10. トラブルシューティング
+
+### 10.1 よくある問題
+
+#### 問題1: バックエンド API に接続できない
+
+- コンテナ名が正しいか確認 (`app` など)
+- 両方のコンテナが同じネットワークに接続されているか確認
+- Proxy 環境の場合: バックエンドの URL を Grafana コンテナの NO_PROXY に追加する必要があります
+
+
+## 11. 参考リンク
+
+### 公式ドキュメント
+
+- [Grafana 公式サイト](https://grafana.com/)
+- [Grafana Documentation](https://grafana.com/docs/grafana/latest/)
+- [Infinity Plugin Documentation](https://grafana.com/grafana/plugins/yesoreyeram-infinity-datasource/)
+- [Docker Hub - Grafana](https://hub.docker.com/r/grafana/grafana)
+
+### コミュニティ
+
+- [Grafana Community Forums](https://community.grafana.com/)
+- [GitHub - Grafana](https://github.com/grafana/grafana)
+- [GitHub - Infinity Plugin](https://github.com/yesoreyeram/grafana-infinity-datasource)
+
+---
+
+## まとめ
+
+本 Wiki では、Docker を使用した Grafana の構築から、Infinity プラグインによるバックエンド API 連携、動的パラメータの設定、フロントエンドへの埋め込みまでの一連のフローを解説しました。
+

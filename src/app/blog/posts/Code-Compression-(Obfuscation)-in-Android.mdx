@@ -1,0 +1,151 @@
+---
+title: "Code Compression (Obfuscation) in Android"
+publishedAt: "2018-06-05" 
+tag: "Android"
+---
+
+- ### 前言
+&emsp;&emsp;最近项目中需要对AAR进行代码混淆，踩了不少坑，所以这里主要针对AAR混淆整理一下，方便以后的问题的解决。
+- ### 混淆的优点
+1.  减小APK文件的大小
+2.  移除封装应用中未使用的类、字段、方法和属性
+3.  用短名称混淆其余的类、字段和方法，可令APK难以逆向工程。
+
+- ### 混淆的缺点
+1.  拖慢项目的构建速度
+- ### 如何开启混淆
+&emsp;&emsp;在build.gradle文件中设置：
+``` 
+android{
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    ...
+}
+```
+
+&emsp;&emsp;这里**minifyEnabled**就是控制是否开启混淆的（这里要注意区分release和debug）。而**proguard-rules.pro**这个文件就是用来配置混淆的。
+
+- ### 配置混淆文件
+1. ##### 不能混淆的文件
+
+&emsp;&emsp;比如四大组件、自定义View、实体类、枚举类、序列化类、第三方jar包等等。
+
+```
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
+-keep public class * extends android.app.backup.BackupAgentHelper
+-keep public class * extends android.preference.Preference
+-keep public class * extends android.view.View
+-keep public class com.android.vending.licensing.ILicensingService
+-keep class android.support.** {*;}
+
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+-keepclassmembers class * extends android.app.Activity{
+    public void *(android.view.View);
+}
+-keep public class * extends android.view.View{
+    *** get*();
+    void set*(***);
+    public <init>(android.content.Context);
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+}
+-keepclasseswithmembers class * {
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+}
+-keep class * implements android.os.Parcelable {
+  public static final android.os.Parcelable$Creator *;
+}
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
+-keep class **.R$* {
+ *;
+}
+-keepclassmembers class * {
+    void *(**On*Event);
+}
+```
+&emsp;&emsp;一些第三方jar包的使用说明中也会有混淆说明，需要自行去添加，这里就不举例说明了。接下来就是针对自己项目的需求进行混淆了，比如因为我是一个AAR，所以一些暴露出来的接口就不能被混淆，还有自己的实体类也不能混淆（所以把实体类归在一个包下是最方便的了）。
+
+```
+-keep class com.eric.android.hs.activity.HSVideoSDK{*;}
+-keep class com.eric.android.hs.bean.**{*;}
+-keep class com.eric.android.hs.callback.HSSDKListener{*;}
+```
+
+&emsp;&emsp;好，这时候我们开始编译，大功告成了？怕是想多了。
+2. ##### 可能遇到的问题
+&emsp;&emsp;紧接着我们可能会遇到类似这样的问题。
+###### 1. 报出许多Warning
+```
+Warning:android.http.b: can't find referenced class java.lang.invoke.LambdaForm$Hidden
+Warning:com.ainemo.a.c: can't find referenced class java.lang.invoke.LambdaForm$Hidden
+Warning:com.ainemo.a.d: can't find referenced class java.lang.invoke.LambdaForm$Hidden
+Warning:com.ainemo.a.e: can't find referenced class java.lang.invoke.LambdaForm$Hidden
+Warning:com.ainemo.a.f: can't find referenced class java.lang.invoke.LambdaForm$Hidden
+....
+Warning:there were 80 unresolved references to classes or interfaces.
+Warning:there were 2 unresolved references to program class members.
+Warning:Exception while processing task java.io.IOException: Please correct the above warnings first.
+Error:Execution failed for task ':heysharevideo:transformClassesAndResourcesWithProguardForDebug'.
+> Job failed, see logs for details
+```
+&emsp;&emsp;虽然不知道为什么会有这么多警告，反正我目前的解决方法就是警告什么，我就设置忽略警告。
+```
+-dontwarn com.ainemo.a.**
+-dontwarn com.ainemo.sdk.module.**
+-dontwarn android.http.b
+-dontwarn com.ainemo.sdk.otf.**
+-dontwarn vulture.module.call.**
+```
+
+###### 2. jar包被重复声明
+```
+Warning:Exception while processing task java.io.IOException: The same input jar [D:\ASProject\HSVideosdkDemo\heysharevideo\libs\gson-2.7.jar] is specified twice.
+Error:Execution failed for task ':heysharevideo:transformClassesAndResourcesWithProguardForDebug'.> Job failed, see logs for details
+```
+&emsp;&emsp;这里的原因应该是在Android Studio中的build.gradle里，这句话
+```
+implementation fileTree(include: ['*.jar'], dir: 'libs')
+```
+&emsp;&emsp;默认将libs里的jar包进行排除混淆，所以**无需**在混淆配置里像这样声明：
+```
+-libraryjars libs/gson-2.7.jar
+```
+
+###### 3. 项目相关的问题
+
+&emsp;&emsp;这时候你可能已经可以编译AAR了，但是使用起来可能还是会报错。大部分原因是你混淆了不能混淆的代码，这时候就需要你根据异常信息找到相关的文件，在proguard-rules.pro进行不混淆。
+
+&emsp;&emsp;为了方便异常信息追踪，我们可以保留代码行号:
+```
+-keepattributes SourceFile,LineNumberTable
+```
+
+&emsp;&emsp;找到相关文件，然后不混淆：
+```
+-keep class com.eric.android.hs.**{*;}//**可以换成具体类名，*可以换成具体的字段
+```
+
+&emsp;&emsp;这里就需要大家自行操作了。
+

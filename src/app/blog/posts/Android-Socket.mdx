@@ -1,0 +1,294 @@
+---
+title: "Android Socket"
+publishedAt: "2018-07-28"
+tag: "Android"
+---
+
+### 前言
+&emsp;&emsp; 网络通信在Android的知识体系里是一块很重要的部分，而socket在网络通信中又是重中之重。学会对socket的熟练使用，绝对能让你的Android水平更上一层楼。
+
+### 应用背景
+&emsp;&emsp;之前一直懒得总结，恰好最近着手的一个项目中有这样的需求。A是一个读卡器，可以看做是服务器，B是一个基于Android的负责显示的设备，C是一个存储用户信息的服务器。当A设备刷卡以后，向B发送卡片信息，其中包含着16进制的卡号，B接受到A发来的卡号后，拿着卡号去C服务器查询相关信息，并将信息在B屏幕上显示。B每隔60s需向A发送一次时间同步的请求，也就是所谓的心跳，确保连接正常，且B也需要有自动重连的功能。  
+&emsp;&emsp;
+这里说的有点啰嗦。。总结成三点，也就是：1、长连接 2、每60s的心跳 3、断线重连
+
+### Socket简介
+&emsp;&emsp;Socket是将TCP/IP封装的抽象层。我们知道Http请求是客户端向服务器进行get或post等，如果客户端不请求则服务器不返回信息。而Socket一旦建立起来，无需客户端主动发送请求，服务器一样能主动发信息给客户端。这是与Http请求的不同之处。
+
+### 实战
+&emsp;&emsp;话不多说，上代码。
+1. ##### 建立连接
+&emsp;&emsp;第一件事当然是客户端和服务器建立连接啦，需要知道服务端的IP地址与端口号。并且记录下Socket的一些状态。
+<CodeBlock
+    compact
+    codes={[
+        {
+            code: 'Intent intent = Socket socket = new Socket(server_ip, server_port);\n isSocketConnect = socket.isConnected();\n isSocketClose = socket.isClosed();\n',
+            label: 'Java Example',
+            language: 'java'
+        },
+    ]}
+    copyButton
+/>
+
+&emsp;&emsp;这里如果没有设置，默认情况下连接服务器30s无响应，则会报出SocketTimeOut的异常。
+
+2. ##### 开启心跳（定时发送消息）
+&emsp;&emsp;这个操作目的是为了检查连接是否中断，如果中断则需要尝试重新连接。这里项目的需求是发送16进制的字节流，其实方法很多，之前我也用过通过sendUrgentData()来判断远端是否断开连接。比如还有socket的keepAlive(true)等。  
+&emsp;&emsp;这里我通过Handler来计时，每60s向服务器发送同步消息。（这里用了弱引用，防止Handler导致的内存泄露）
+```java
+
+    public int timeCount = 0;
+    public int timeInterval = 60;
+    public String timeSyc = "F10000000011000000000C000000000000";
+    
+    public void startHeartBeat() {
+        requestCountTime();
+    }
+
+    public void requestCountTime() {
+        mHandler.sendEmptyMessageDelayed(MSG_TIME_COUNT, 1000);
+    }
+    
+    private static final int MSG_CARD_NO = 0x01;
+    private static final int MSG_TIME_COUNT = 0x02;
+    
+    static class MyHandler extends Handler {
+        WeakReference<MainActivity> mActivityReference;
+
+        MyHandler(MainActivity activity) {
+            mActivityReference = new WeakReference<>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            MainActivity activity = mActivityReference.get();
+            switch (msg.what) {
+                case MSG_TIME_COUNT:
+                    activity.timeCount++;
+                    activity.requestCountTime();
+                    if (activity.timeCount > activity.timeInterval) {
+                        activity.isNeedSendHeart = true;
+                        activity.timeCount = 0;
+                        activity.synTimeThread.start();
+                        //每60s发送一次，然后计时置0，重复循环。
+                    }
+                    break;
+            }
+        }
+    }
+    
+    class  SynTimeThread extends Thread {
+        @Override
+        public void run() {
+            super.run();
+            if (isNeedSendHeart && !isDestroy) {
+                Log.e(TAG, "send Time Syc");
+                try {
+                    out.write(toBytes(timeSyc));
+                    out.flush();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    isSocketConnect = false;
+                }
+                isNeedSendHeart = false;
+            }
+        }
+    }
+```
+
+3. #### 打开输入输出字节流  
+&emsp;&emsp;接下来Socket连接成功后，我们需要进行数据的接受和发送，并且将接受到的数据进行一定的解析。下面给出响应的代码。
+```java
+private boolean connect () {
+        try {
+            Log.e(TAG, "connect ip:" + server_ip + ":"+ server_port);
+            mHandler.removeMessages(MSG_TIME_COUNT); //重连之前将心跳的计时移除
+
+            socket = new Socket(server_ip, server_port);
+            isSocketConnect = socket.isConnected();
+            in = socket.getInputStream();
+            out = socket.getOutputStream();
+            byte[] buffer = new byte[100];
+            startHeartBeat();
+            Log.e(TAG, "wait for card buffer");
+            in.read(buffer);
+            Log.e(TAG, "array:" + Integer.toHexString(buffer[33]) + " " +Integer.toHexString(buffer[34]) + " " + Integer.toHexString(buffer[35]) + " " + Integer.toHexString(buffer[36]));
+            byte[] cardIdByte = new byte[4];
+            cardIdByte[0] = buffer[33];
+            cardIdByte[1] = buffer[34];
+            cardIdByte[2] = buffer[35];
+            cardIdByte[3] = buffer[36];
+            //因为是协议的规定，所以我这里只需要取33-36里的值。
+            mCardNum = null;
+
+            cardID = byteArrayToInt(cardIdByte);
+            mCardNum = cardID + "";
+            Log.e(TAG, "mCardNum" + mCardNum);
+            Message msg = new Message();
+            msg.what = MSG_CARD_NO;
+            msg.obj = mCardNum;
+            mHandler.sendMessage(msg);
+
+        } catch (UnknownHostException e) {
+            Log.e(TAG, "UnknownHostException:" + e.toString());
+            isSocketConnect = false;
+        } catch (IOException e) {
+            Log.e(TAG, "IOException:" + e.toString());
+            isSocketConnect = false;
+        } catch (Exception e) {
+            Log.e(TAG, "Exception:" + e.toString());
+            isSocketConnect = false;
+        }
+
+        return isSocketConnect;
+    }
+```
+&emsp;&emsp;这里一开始给自己挖了一个坑，在这个in.read()上，刚开始我是这样写的
+```java
+    while(in.read() != -1) {
+        in.read(buffer);
+    }
+```
+&emsp;&emsp;网上说“in.read() == -1”是来判断数据读取是否完毕，那我就通过这个来判断什么时候结束对buffer数组的赋值。结果就是发过来的信息，永远少了第一位（比如发的是F1 00 12 13 14, 结果接收到的是00 12 13 14）。后来断点到这，再恍然大悟。我拿来判断的这个in.read()，实际上已经是读取了第一个数组位置上的信息，导致进入循环后，已经是从第二个位置开始读取了，如果想通过in.read()来判断的话，那么就只能先将第一个值记录下来，然后自行加入数组中。
+
+&emsp;&emsp;这个是将16进制转化成10进制
+```java
+ public static int byteArrayToInt(byte[] bytes) {
+        int value = 0;
+        // 由高位到低位
+        for (int i = 0; i < 4; i++) {
+            int shift = (4 - 1 - i) * 8;
+            value += (bytes[i] & 0x000000FF) << shift;// 往高位游
+        }
+        return value;
+    }
+```
+
+&emsp;&emsp;这个是将字符串转成16进制的数组
+```java
+ public static byte[] toBytes(String str) {
+        if(str == null || str.trim().equals("")) {
+            return new byte[0];
+        }
+
+        byte[] bytes = new byte[str.length() / 2];
+        for(int i = 0; i < str.length() / 2; i++) {
+            String subStr = str.substring(i * 2, i * 2 + 2);
+            bytes[i] = (byte) Integer.parseInt(subStr, 16);
+        }
+
+        return bytes;
+    }
+```
+
+4. #### 释放
+&emsp;&emsp;在进行网络请求的时候，要注意资源的释放，因为跟网络相关的一般都是耗时操作，如果不及时的释放资源，则会导致内存溢出。
+```java
+public void stopCardReceive() {
+        if (mCardInfoReceive != null) {
+            mCardInfoReceive.setStop();
+            mCardInfoReceive = null;
+        }
+        isReconnect = false;
+        isNeedSendHeart = false;
+        release();
+    }
+
+public void release() {
+        Log.e(TAG, "socket release");
+        try {
+            if (in != null) {
+                in.close();
+            }
+            in = null;
+            if (out != null) {
+                out.close();
+            }
+            out = null;
+
+            if (socket != null) {
+                socket.close();
+            }
+            socket = null;
+            if (isReconnect) {
+                Thread.sleep(reConnectTime);
+                Log.e(TAG, "try to reconnect socket");
+                ret = connect();
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+```
+&emsp;&emsp;我在这里添加了重连的方法，先释放所有资源，如果需要重连，则从头开始建立Socket连接。
+
+
+5. #### 开启运行Socket的线程
+&emsp;&emsp;上面讲了因为通过Socket进行网络请求是耗时操作，所以不能放在主线程运行，所以我们另开启一个线程。
+```Java
+class CardInfoReceive implements Runnable {
+		private boolean running;
+		private CardInfoReceive() { running = true; }
+		private void setStop() {
+			running = false;
+		}
+		@Override
+		public void run() {
+			while (running) {
+				ret = connect();
+				while (!ret) {
+					release();
+					if (isDestroy){
+						break;
+					}
+				}
+			}
+		}
+	}
+```
+&emsp;&emsp;通过running标志来控制线程的运行，如果生命周期进入到onDestroy，则不重连并停止所有线程。
+
+6. #### Activity里的Socket
+&emsp;&emsp;这里主要就是记得在Activity结束后，对资源的释放。
+```java
+    public String timeSyc = "F10000000011000000000C000000000000";
+	public String server_ip = "192.168.150.202";
+	public int server_port = 903;
+	public int timeCount = 0;
+	public int timeInterval = 60; //心跳每60s发送
+	public int cardID;
+	public int reConnectTime = 120 * 1000; //每两分钟重连
+	public boolean ret;
+	public boolean isSocketConnect = false; //Socket是否连接
+	public boolean isReconnect = true;  //是否需要重连
+	public boolean isNeedSendHeart; //是否发送心跳
+	public boolean isDestroy = false; //Activity是否被销毁
+	public InputStream in;
+	public OutputStream out;
+	public Socket socket;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        mHandler = new MyHandler(this);
+
+        mCardInfoReceive = new CardInfoReceive();
+        mCardInfoThd = new Thread(mCardInfoReceive);
+        mCardInfoThd.start();
+
+    }
+    
+    
+    @Override
+    protected void onDestroy() {
+        stopCardReceive();
+        super.onDestroy();
+    }
+```
+
+7. #### 总结
+    在我看来，Socket的难点在于一些对于异常的处理以及线程的运用，如何保证连接有效，保证自动重连等。代码已经提交到Github上，需要的自取。https://github.com/ericlee1994/SocketDemo

@@ -1,0 +1,242 @@
+---
+title: "AndroidのMVVMパターンの実装"
+publishedAt: "2024-10-25"
+summary: "JavaでMVVMパターンを実装する方法を紹介します。"
+images: 
+---
+
+# 背景
+引き継いだAndroidプロジェクトは数社のアウトソーシング会社によるもので、アーキテクチャが混乱している。
+例えば、Activity内に大量のデータ処理や通信が含まれており、メソッドやクラスの重複定義などの問題があります。
+そこで、既存のコーチをMVVMアーキテクチャを用いて書き直すことを試みています。
+
+## メリットとデメリット
+MVVMパターンは、ビューとビジネスロジックを分離することで、コードの再利用性を高め、テストしやすくします。  
+学習コストがかかり、メンバーの開発スキルを同時に向上させる必要がる。また、書き直す段階で追加のバグが発生する可能性があり、作業量が増えることもある。
+
+<figure  style={{ textAlign: 'center' }}>
+    <img src="/images/projects/mvvm/mvvm.png" alt="" style={{ width: '100%', height: 'auto' }} />
+</figure>
+
+## デモ
+Github Repository: [MVVM Demo](https://github.com/1994ericlee/MVVM.git)
+ここでは、簡単なログイン機能実現のためのMVVMパターンの実装を紹介します。
+RetrofitとOkHttpを使用して、LoginRepositoryでデータのリクエストと受信を担当します。
+受信したデータはLiveDataに格納され、Activity内でViewModelを通じてobserveできるようにします。
+サーバーからデータが返された後、Activityはデータの更新を知り、UIを更新することができます。
+
+### LoginActivity.java
+
+<CodeBlock
+    compact
+    codes={[
+        { code: `package com.eric.mvvm.login;
+
+import android.os.Bundle;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.eric.mvvm.GlobalData;
+import com.eric.mvvm.R;
+import com.eric.mvvm.base.BaseActivity;
+import com.eric.mvvm.base.ErrorBean;
+import com.eric.mvvm.base.ErrorType;
+import com.eric.mvvm.databinding.ActivityLoginBinding;
+import com.eric.mvvm.utils.DialogUtil;
+
+public class LoginActivity extends BaseActivity {
+    private static final String TAG = "LoginActivity";
+
+    private ActivityLoginBinding binding;
+    private LoginViewModel loginViewModel;
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        binding = ActivityLoginBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+
+        binding.loginTitle.setText(R.string.login_title);
+        binding.loginWorkIDTitle.setText(R.string.login_worker_id_title);
+        binding.loginButton.setText(R.string.login_button);
+
+        binding.loginButton.setOnClickListener(view -> login());
+        loginViewModel = new ViewModelProvider(this).get(LoginViewModel.class);
+        loginViewModel.getLoginResultLiveData().observe(this, this::loginResult);
+        loginViewModel.getErrorBeanResultLiveData().observe(this, this::showError);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        binding.loginWorkIDInput.setText("P56");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
+    private void loginResult(LoginResult loginResult) {
+        if (loginResult.isLogin()){
+            DialogUtil.showDialog(this,"Login", "Login Success!");
+        }else {
+            Log.e(TAG,"login error: ");
+        }
+    }
+
+    private void login(){
+        loginViewModel.login(GlobalData.workerID, GlobalData.macAddress);
+    }
+    private void showError(ErrorBean errorBean) {
+        if (errorBean.getErrorType().equals(ErrorType.LOGIN)){
+            DialogUtil.showDialog(this,"Login Error", errorBean.getErrorMsg());
+        }
+    }
+} `,
+
+         　　label: 'LoginActivity.java',
+            language: 'Java'
+        },
+    ]}
+    copyButton
+/>
+###  LoginRepository.java
+<CodeBlock
+    compact
+    codes={[
+        {　 code: `package com.eric.mvvm.login;
+
+import androidx.lifecycle.MutableLiveData;
+
+import com.eric.mvvm.ApiService;
+import com.eric.mvvm.NetworkApi;
+import com.eric.mvvm.base.BaseObserver;
+import com.eric.mvvm.base.ErrorBean;
+import com.eric.mvvm.base.ErrorType;
+
+import org.json.JSONObject;
+
+import okhttp3.ResponseBody;
+
+public class LoginRepository {
+
+    public void setLoginResultMutableLiveData(String workerId, String macAddress, MutableLiveData<LoginResult> loginResultMutableLiveData,
+                                              MutableLiveData<ErrorBean> failedLiveData){
+        ErrorBean errorBean = new ErrorBean();
+        errorBean.setErrorType(ErrorType.LOGIN);
+
+        NetworkApi.createService(ApiService.class)
+                .login(workerId, macAddress)
+                .compose(NetworkApi.applySchedulers())
+                .subscribe(new BaseObserver<ResponseBody>() {
+                    @Override
+                    public void onSuccess(ResponseBody responseBody) {
+                        try {
+                            String response = responseBody.string();
+                            response = response.substring(response.indexOf("{"), response.lastIndexOf("}") + 1);
+                            JSONObject jsonObject = new JSONObject(response);
+
+                            boolean isLogin = jsonObject.getBoolean("login_result");
+                            if (isLogin) {
+
+                                LoginResult result = new LoginResult();
+                                result.setLogin(true);
+
+                                loginResultMutableLiveData.setValue(result);
+                            } else {
+                                String msg = jsonObject.getString("msg");
+                                errorBean.setErrorMsg(msg);
+                                failedLiveData.setValue(errorBean);
+
+                            }
+                        }catch (Exception e) {
+                            errorBean.setErrorMsg(e.toString());
+                            failedLiveData.setValue(errorBean);
+                            throw new RuntimeException(e);
+                        }
+
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        errorBean.setErrorMsg(e.toString());
+                        failedLiveData.setValue(errorBean);
+                    }
+                });
+    }
+}
+        `,
+
+         　　label: 'LoginRepository.java',
+            language: 'java'
+        },
+    ]}
+    copyButton
+/>
+### LoginViewModel.java
+<CodeBlock
+    compact
+    codes={[
+        { code: `package com.eric.mvvm.login;
+
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+
+import com.eric.mvvm.base.BaseViewModel;
+import com.eric.mvvm.base.ErrorBean;
+
+public class LoginViewModel extends BaseViewModel {
+
+    private final LoginRepository loginRepository = new LoginRepository();
+
+    private final MutableLiveData<LoginResult> loginResultMutableLiveData = new MutableLiveData<>();
+
+    public LiveData<LoginResult> getLoginResultLiveData() {return loginResultMutableLiveData;}
+    public LiveData<ErrorBean> getErrorBeanResultLiveData() {return failed;}
+
+    public void login(String workerId, String macAddress){
+        loginRepository.setLoginResultMutableLiveData(workerId, macAddress, loginResultMutableLiveData, failed);
+
+    }
+} `,
+
+         　　label: 'LoginViewModel.java',
+            language: 'java'
+        },
+    ]}
+    copyButton
+/>
+## LoginResult.java
+
+<CodeBlock
+    compact
+    codes={[
+        {　 code: `package com.eric.mvvm.login;
+
+public class LoginResult {
+    private boolean isLogin;
+
+    public boolean isLogin() {
+        return isLogin;
+    }
+
+    public void setLogin(boolean login) {
+        isLogin = login;
+    }
+
+} `,
+
+        label: 'LoginResult.java',
+        language: 'java'
+        },
+    ]}
+    copyButton
+/>

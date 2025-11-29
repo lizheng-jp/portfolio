@@ -1,0 +1,45 @@
+---
+title: "The problem of generate GlideApp"
+publishedAt:  "2019-07-14"
+tag: "Android"
+---
+
+### 问题
+
+在使用kotlin时，使用Glide无法生成GlideApp的问题。
+
+
+### 解决方法
+
+之前在build.gradle里错误的使用了annotationProcessor，而应该使用kapt，而且还需要加入apply plugin: 'kotlin-kapt'。
+
+### 官方文档
+
+If you’re using Kotlin you can:
+
+1. Implement all of Glide’s annotated classes ([`AppGlideModule`](http://bumptech.github.io/glide/javadocs/400/com/bumptech/glide/module/AppGlideModule.html), [`LibraryGlideModule`](http://bumptech.github.io/glide/javadocs/400/com/bumptech/glide/module/LibraryGlideModule.html), and [`GlideExtension`](http://bumptech.github.io/glide/javadocs/400/com/bumptech/glide/annotation/GlideExtension.html)) in Java as shown above.
+
+2. Implement the annotated classes in Kotlin, but add a `kapt` dependency instead of an `annotationProcessor` dependency on Glide’s annotation processor:
+
+   ```
+   dependencies {
+     kapt 'com.github.bumptech.glide:compiler:4.9.0'
+   }
+   ```
+
+   Note that you must also include the `kotlin-kapt` plugin in your `build.gradle` file:
+
+   ```
+   apply plugin: 'kotlin-kapt'
+   ```
+
+   In addition, if you have any other annotation processors, all of them must be converted from `annotationProcessor` to `kapt`:
+
+   ```xml
+   dependencies {
+     kapt "android.arch.lifecycle:compiler:1.0.0"
+     kapt 'com.github.bumptech.glide:compiler:4.9.0'
+   }
+   ```
+
+最后Rebuild Project，生成GlideApp。

@@ -1,0 +1,56 @@
+---
+title: "Serialization in Android"
+publishedAt: "2018-09-16"
+tag: "Android"
+---
+
+- ### 为什么要序列化？  
+&emsp;&emsp;在进程间的通信里，我们无法直接传递对象，当我们通过Intent
+和Binder传输数据，或者想持久化到内存以及网络传输的时候，就需要通过序列化来进行传输。
+
+
+- ### 怎么序列化？
+&emsp;&emsp;主要有两个接口，一个是Java提供的Serializable以及为Android量身定做的Parcelable。  
+&emsp;&emsp;Serializable用起来很简单，只要将对象类实现Serializable接口，并且声明一个serialVersionUID就可以，这个UID其实就是起到验证的作用，保证反序列化时候相匹配。UID可以自己定义，也可以是根据这个结构的自动生成hash值。这里要注意的是**序列化的对象和反序列化出来的对象不是同一个对象**。  
+&emsp;&emsp;还有一个是Parcelable，这个是Android中的序列方式，下面建个User类来实现序列化
+```
+public class User implements Parcelable{
+    public String name;
+    public int id;
+    public Book book;
+
+    protected User(Parcel in) {
+        name = in.readString();
+        id = in.readInt();
+        book = in.readParcelable(Thread.currentThread().getContextClassLoader());
+    }
+
+    public static final Creator<User> CREATOR = new Creator<User>() {
+        @Override
+        public User createFromParcel(Parcel in) {
+            return new User(in);
+        }
+
+        @Override
+        public User[] newArray(int size) {
+            return new User[size];
+        }
+    };
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(name);
+        dest.writeInt(id);
+        dest.writeParcelable(book, 0);
+    }
+}
+```
+&emsp;&emsp;实现Parcelable以后，根据AS的提示自动补全代码。如果这个类中有其他的可序列化对象，那么在反序列化的时候需要传递当前线程的上下文加载器。
+
+- ### Serializable和Parcelable区别
+&emsp;&emsp;说实话，感觉区别大，Serializable开销比较大，而Parcelable用起来麻烦点，效率较高，更适合在Android平台上。
