@@ -1,6 +1,7 @@
 import { MDXRemote, MDXRemoteProps } from "next-mdx-remote/rsc";
 import React, { ReactNode } from "react";
 import { slugify as transliterate } from "transliteration";
+import { BlockMath, InlineMath } from "react-katex";
 
 import {
   Heading,
@@ -86,11 +87,24 @@ function slugify(str: string): string {
 }
 
 function createHeading(as: "h1" | "h2" | "h3" | "h4" | "h5" | "h6") {
+  const getTextFromChildren = (children: ReactNode): string => {
+    if (typeof children === "string") {
+      return children;
+    }
+    if (Array.isArray(children)) {
+      return children.map(getTextFromChildren).join("");
+    }
+    if (typeof children === "object" && children !== null && "props" in children) {
+      return getTextFromChildren(children.props.children);
+    }
+    return "";
+  };
+
   const CustomHeading = ({
     children,
     ...props
   }: Omit<React.ComponentProps<typeof HeadingLink>, "as" | "id">) => {
-    const slug = slugify(children as string);
+    const slug = slugify(getTextFromChildren(children));
     return (
       <HeadingLink marginTop="24" marginBottom="12" as={as} id={slug} {...props}>
         {children}
@@ -202,6 +216,8 @@ const components = {
   Icon,
   Media,
   SmartLink,
+  BlockMath,
+  InlineMath,
 };
 
 type CustomMDXProps = MDXRemoteProps & {
