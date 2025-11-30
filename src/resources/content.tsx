@@ -178,21 +178,10 @@ const about: About = {
             icon: "tensorflow",
           },
           {
-            name: "Scikit-learn",
-            icon: "scikit-learn",
-          },
-          {
             name: "Pandas",
             icon: "pandas",
           },
-          {
-            name: "Matplotlib",
-            icon: "matplotlib",
-          },
-          {
-            name: "Seaborn",
-            icon: "seaborn",
-          },
+
           {
             name: "Numpy",
             icon: "numpy",
@@ -204,6 +193,18 @@ const about: About = {
           {
             name: "Jupyter",
             icon: "jupyter",
+          },
+          {
+            name: "Matplotlib",
+            icon: "matplotlib",
+          },
+          {
+            name: "Scikit-learn",
+            icon: "scikit-learn",
+          },
+          {
+            name: "MLflow",
+            icon: "mlflow",
           },
         ],
         // optional: leave the array empty if you don't want to display images
