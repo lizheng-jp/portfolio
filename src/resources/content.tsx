@@ -1,4 +1,4 @@
-import { About, Blog, Gallery, Home, Newsletter, Person, Social, Work } from "@/types";
+import type { About, Blog, Gallery, Home, Newsletter, Person, Social, Work } from "@/types";
 import { Line, Row, Text } from "@once-ui-system/core";
 
 const person: Person = {
@@ -110,16 +110,12 @@ const about: About = {
         timeframe: "2024 - Present",
         role: "Software and Machine Learning Engineer",
         achievements: [
-          <>
-            Using Machine Learning to detect and classify the anomaly in the production line, helped
+          `Using Machine Learning to detect and classify the anomaly in the production line, helped
             Manufacturing Department to analysis and improve the manufacturing process. Anomaly Detection
-            accuracy increased to 92%, and the classification accuracy increased to 85%.
-          </>,
-          <>
-            Reconstruction of the Android application, by using MVVM architecture, reduced the
+            accuracy increased to 92%, and the classification accuracy increased to 85%.`,
+          `Reconstruction of the Android application, by using MVVM architecture, reduced the
             complexity of the code by 40%. By implementing an automatic version update mechanism, each
-            update cycle was reduced by 90%.
-          </>,
+            update cycle was reduced by 90%.`,
         ],
         images: [
           // optional: leave the array empty if you don't want to display images
@@ -136,10 +132,8 @@ const about: About = {
         timeframe: "2016 - 2018",
         role: "Software Engineer",
         achievements: [
-          <>
-            Participated in the development of multiple Android applications, including a paperless meeting application,
-            an announcement display application, and an access control display application.
-          </>,
+          `Participated in the development of multiple Android applications, including a paperless meeting application,
+            an announcement display application, and an access control display application.`,
         ],
         images: [],
       },
