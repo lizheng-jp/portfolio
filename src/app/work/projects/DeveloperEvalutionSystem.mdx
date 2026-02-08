@@ -1,0 +1,28 @@
+---
+title: "開発者生産性評価システム CI/CD"
+publishedAt: "2026-02-06"
+summary: "スクラム開発のでシステム開発効率化するため、CI/CDを導入した"
+image: 
+---
+
+### システムの構成
+バックエンド：Gitlabのデータを取得し、各プロジェクトと各メンバーのデータを評価フレームワークSPACEに基づき、各指標のスコアを計算する
+フロントエンド：Next.jsで開発し、各指標のスコアを可視化する
+
+### 実現したいこと
+バックエンドとフロントエンドのソースコードを同一リポジトリで管理し、ソースコードを修正してプッシュすると、自動的に PoC サーバーへデプロイされるようにする。
+
+### プロジェクト
+
+- DeveloperEvalutionSystem
+    - Backend
+        - code
+        - dockfile
+    - Frontend
+        - code
+        - dockfile
+    - Jenkinsfile
+    - Docker-compose.yml
+
+### 課題
+1. 
