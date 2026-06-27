@@ -2,7 +2,9 @@ import { MDXRemote, MDXRemoteProps } from "next-mdx-remote/rsc";
 import React, { ReactNode } from "react";
 import { slugify as transliterate } from "transliteration";
 import { BlockMath, InlineMath } from "react-katex";
+import remarkGfm from "remark-gfm";
 
+import { MermaidDiagram } from "@/components/MermaidDiagram";
 import {
   Heading,
   HeadingLink,
@@ -143,6 +145,11 @@ function createCodeBlock(props: any) {
     // Extract language from className (format: language-xxx)
     const language = className.replace("language-", "");
     const label = language.charAt(0).toUpperCase() + language.slice(1);
+    const code = String(children).trim();
+
+    if (language === "mermaid") {
+      return <MermaidDiagram chart={code} />;
+    }
 
     return (
       <CodeBlock
@@ -150,7 +157,7 @@ function createCodeBlock(props: any) {
         marginBottom="16"
         codes={[
           {
-            code: children,
+            code,
             language,
             label,
           },
@@ -184,6 +191,60 @@ function createHR() {
   );
 }
 
+function createTable({ children }: { children: ReactNode }) {
+  return (
+    <Row
+      fillWidth
+      overflowX="auto"
+      radius="m"
+      border="neutral-alpha-weak"
+      background="surface"
+      marginTop="8"
+      marginBottom="16"
+    >
+      <table
+        style={{
+          width: "100%",
+          minWidth: "40rem",
+          borderCollapse: "collapse",
+          borderSpacing: 0,
+        }}
+      >
+        {children}
+      </table>
+    </Row>
+  );
+}
+
+function createTableHeader({ children }: { children: ReactNode }) {
+  return (
+    <th
+      className="px-16 py-12 font-label font-default font-s"
+      style={{
+        textAlign: "left",
+        borderBottom: "1px solid var(--neutral-alpha-weak)",
+        verticalAlign: "top",
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+function createTableCell({ children }: { children: ReactNode }) {
+  return (
+    <td
+      className="px-16 py-12 font-body font-default font-s"
+      style={{
+        borderBottom: "1px solid var(--neutral-alpha-weak)",
+        verticalAlign: "top",
+      }}
+    >
+      {children}
+    </td>
+  );
+}
+
 const components = {
   p: createParagraph as any,
   h1: createHeading("h1") as any,
@@ -200,6 +261,9 @@ const components = {
   ul: createList as any,
   li: createListItem as any,
   hr: createHR as any,
+  table: createTable as any,
+  th: createTableHeader as any,
+  td: createTableCell as any,
   Heading,
   Text,
   CodeBlock,
@@ -225,5 +289,17 @@ type CustomMDXProps = MDXRemoteProps & {
 };
 
 export function CustomMDX(props: CustomMDXProps) {
-  return <MDXRemote {...props} components={{ ...components, ...(props.components || {}) }} />;
+  return (
+    <MDXRemote
+      {...props}
+      options={{
+        ...props.options,
+        mdxOptions: {
+          ...props.options?.mdxOptions,
+          remarkPlugins: [remarkGfm, ...(props.options?.mdxOptions?.remarkPlugins || [])],
+        },
+      }}
+      components={{ ...components, ...(props.components || {}) }}
+    />
+  );
 }
