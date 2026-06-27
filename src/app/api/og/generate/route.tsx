@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
 import { baseURL, person } from "@/resources";
 
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
           }}
         >
           <img
+            alt={person.name}
             src={baseURL + person.avatar}
             style={{
               width: "12rem",

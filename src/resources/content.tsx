@@ -14,11 +14,13 @@ const person: Person = {
 
 const newsletter: Newsletter = {
   display: false,
-  title: <>Subscribe to {person.firstName}'s Newsletter</>,
-  description: <>
-    I occasionally write about Android, Machine Learning, and share thoughts on the intersection of
-    engineering.
-  </>,
+  title: <>Subscribe to {person.firstName}&apos;s Newsletter</>,
+  description: (
+    <>
+      I occasionally write about Android, Machine Learning, and share thoughts on the intersection
+      of engineering.
+    </>
+  ),
 };
 
 const social: Social = [
@@ -67,8 +69,8 @@ const home: Home = {
   },
   subline: (
     <>
-      I'm Li Zheng, a software engineer at Sharp Corporation, where I develop Mobile, Web and ML
-      Application.
+      I&apos;m Li Zheng, a software engineer at Sharp Corporation, where I develop Mobile, Web and
+      ML Application.
     </>
   ),
 };
@@ -94,10 +96,10 @@ const about: About = {
     title: "Introduction",
     description: (
       <>
-        I'm a software engineer with a passion for building amzing applications. I have experience in
-        Android and Machine Learning. I'm currently working at Sharp Corporation. I like to learn new
-        things and I'm always looking for new challenges. Also I will share my experience and thoughts
-        on this website.
+        I&apos;m a software engineer with a passion for building amzing applications. I have
+        experience in Android and Machine Learning. I&apos;m currently working at Sharp Corporation.
+        I like to learn new things and I&apos;m always looking for new challenges. Also I will share
+        my experience and thoughts on this website.
       </>
     ),
   },
@@ -159,9 +161,7 @@ const about: About = {
     skills: [
       {
         title: "Machine Learning",
-        description: (
-          <>Image classification, Anomaly Detection, Image Denoise.</>
-        ),
+        description: <>Image classification, Anomaly Detection, Image Denoise.</>,
         tags: [
           {
             name: "Pytorch",
@@ -218,10 +218,8 @@ const about: About = {
         ],
       },
       {
-        title: "Android",
-        description: (
-          <>Mobile Application Development.</>
-        ),
+        title: "Mobile",
+        description: <>Mobile Application Development.</>,
         tags: [
           {
             name: "Java",
@@ -248,9 +246,7 @@ const about: About = {
       },
       {
         title: "Web",
-        description: (
-          <>Web Application Development.</>
-        ),
+        description: <>Web application and backend development.</>,
         tags: [
           {
             name: "Spring Boot",
@@ -264,9 +260,58 @@ const about: About = {
             name: "JavaScript",
             icon: "javascript",
           },
+          {
+            name: "TypeScript",
+            icon: "typescript",
+          },
+          {
+            name: "Node.js",
+            icon: "nodejs",
+          },
+          {
+            name: "PostgreSQL",
+            icon: "postgresql",
+          },
         ],
-        images: [
+        images: [],
+      },
+      {
+        title: "Engineering Tools",
+        description: <>CI/CD, monitoring, and performance testing.</>,
+        tags: [
+          {
+            name: "Jenkins",
+            icon: "jenkins",
+          },
+          {
+            name: "Grafana",
+            icon: "grafana",
+          },
+          {
+            name: "JMeter",
+            icon: "jmeter",
+          },
         ],
+        images: [],
+      },
+      {
+        title: "AI Tools",
+        description: <>AI-assisted coding, research, and workflow automation.</>,
+        tags: [
+          {
+            name: "Gemini",
+            icon: "gemini",
+          },
+          {
+            name: "Codex",
+            icon: "codex",
+          },
+          {
+            name: "Kiro",
+            icon: "kiro",
+          },
+        ],
+        images: [],
       },
     ],
   },
