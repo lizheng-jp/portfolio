@@ -1,5 +1,5 @@
 import { getPosts } from "@/utils/utils";
-import { baseURL, routes as routesConfig } from "@/resources";
+import { baseURL, resume, routes as routesConfig } from "@/resources";
 
 export default async function sitemap() {
   const blogs = getPosts(["src", "app", "blog", "posts"]).flatMap((post) => [
@@ -28,6 +28,18 @@ export default async function sitemap() {
       })),
   ]);
 
+  const resumePost = getPosts(["src", "app", "work", "projects"]).find(
+    (post) => post.slug === "Resume",
+  );
+
+  const resumeLanguageRoutes =
+    resumePost?.variants
+      .filter((variant) => variant.language && !variant.isDefault)
+      .map((variant) => ({
+        url: `${baseURL}${resume.path}/${variant.language}`,
+        lastModified: resumePost.metadata.publishedAt,
+      })) || [];
+
   const activeRoutes = Object.keys(routesConfig).filter(
     (route) => routesConfig[route as keyof typeof routesConfig],
   );
@@ -37,5 +49,5 @@ export default async function sitemap() {
     lastModified: new Date().toISOString().split("T")[0],
   }));
 
-  return [...routes, ...blogs, ...works];
+  return [...routes, ...resumeLanguageRoutes, ...blogs, ...works];
 }

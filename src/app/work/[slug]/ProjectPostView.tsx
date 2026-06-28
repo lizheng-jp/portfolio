@@ -38,13 +38,24 @@ export function getProjectPostLanguageStaticParams(): { slug: string; lang: Cont
   return getPostLanguageParams(WORK_POSTS_PATH);
 }
 
-function getCurrentPath(slug: string, language?: ContentLanguage) {
-  return language ? `${work.path}/${slug}/${language}` : `${work.path}/${slug}`;
+type ProjectPostPathOptions = {
+  basePath?: string;
+  pathSlug?: string;
+};
+
+function getCurrentPath(
+  slug: string,
+  language?: ContentLanguage,
+  { basePath = work.path, pathSlug = slug }: ProjectPostPathOptions = {},
+) {
+  const base = pathSlug ? `${basePath}/${pathSlug}` : basePath;
+  return language ? `${base}/${language}` : base;
 }
 
 export async function getProjectPostMetadata(
   slugPath: string,
   language?: ContentLanguage,
+  pathOptions?: ProjectPostPathOptions,
 ): Promise<Metadata> {
   const post = getPost(WORK_POSTS_PATH, slugPath, language);
 
@@ -55,16 +66,26 @@ export async function getProjectPostMetadata(
     description: post.metadata.summary,
     baseURL: baseURL,
     image: post.metadata.image || `/api/og/generate?title=${post.metadata.title}`,
-    path: getCurrentPath(post.slug, language),
+    path: getCurrentPath(post.slug, language, pathOptions),
   });
 }
 
 export async function ProjectPostView({
   slugPath,
   language,
+  basePath = work.path,
+  pathSlug,
+  parentHref = work.path,
+  parentLabel = "Projects",
+  showRelatedProjects = true,
 }: {
   slugPath: string;
   language?: ContentLanguage;
+  basePath?: string;
+  pathSlug?: string;
+  parentHref?: string;
+  parentLabel?: string;
+  showRelatedProjects?: boolean;
 }) {
   const post = getPost(WORK_POSTS_PATH, slugPath, language);
 
@@ -72,7 +93,7 @@ export async function ProjectPostView({
     notFound();
   }
 
-  const currentPath = getCurrentPath(post.slug, language);
+  const currentPath = getCurrentPath(post.slug, language, { basePath, pathSlug });
   const avatars =
     post.metadata.team?.map((person) => ({
       src: person.avatar,
@@ -102,16 +123,16 @@ export async function ProjectPostView({
             }}
           />
           <Column maxWidth="s" gap="16" horizontal="center" align="center">
-            <SmartLink href="/work">
-              <Text variant="label-strong-m">Projects</Text>
+            <SmartLink href={parentHref}>
+              <Text variant="label-strong-m">{parentLabel}</Text>
             </SmartLink>
             <Text variant="body-default-xs" onBackground="neutral-weak" marginBottom="12">
               {post.metadata.publishedAt && formatDate(post.metadata.publishedAt)}
             </Text>
             <Heading variant="display-strong-m">{post.metadata.title}</Heading>
             <LanguageSwitcher
-              basePath={work.path}
-              slug={post.slug}
+              basePath={basePath}
+              slug={pathSlug ?? post.slug}
               currentLanguage={post.language}
               variants={post.variants}
             />
@@ -145,13 +166,15 @@ export async function ProjectPostView({
           <Column style={{ margin: "auto" }} as="article" maxWidth="xs">
             <CustomMDX source={post.content} />
           </Column>
-          <Column fillWidth gap="40" horizontal="center" marginTop="40">
-            <Line maxWidth="40" />
-            <Heading as="h2" variant="heading-strong-xl" marginBottom="24">
-              Related projects
-            </Heading>
-            <Projects exclude={[post.slug]} range={[2]} />
-          </Column>
+          {showRelatedProjects && (
+            <Column fillWidth gap="40" horizontal="center" marginTop="40">
+              <Line maxWidth="40" />
+              <Heading as="h2" variant="heading-strong-xl" marginBottom="24">
+                Related projects
+              </Heading>
+              <Projects exclude={[post.slug]} range={[2]} />
+            </Column>
+          )}
           <ScrollToHash />
         </Column>
       </Row>

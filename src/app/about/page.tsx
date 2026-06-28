@@ -12,7 +12,7 @@ import {
   Schema,
   Row,
 } from "@once-ui-system/core";
-import { baseURL, about, person, social } from "@/resources";
+import { baseURL, about, person, resume, social } from "@/resources";
 import TableOfContents from "@/components/about/TableOfContents";
 import styles from "@/components/about/about.module.scss";
 import React from "react";
@@ -192,6 +192,24 @@ export default function About() {
                       </React.Fragment>
                     ),
                 )}
+                <Row s={{ hide: true }}>
+                  <Button
+                    href={resume.path}
+                    prefixIcon="resume"
+                    label={resume.label}
+                    size="s"
+                    weight="default"
+                    variant="primary"
+                  />
+                </Row>
+                <Row hide s={{ hide: false }}>
+                  <IconButton
+                    size="l"
+                    href={resume.path}
+                    icon="resume"
+                    variant="primary"
+                  />
+                </Row>
               </Row>
             )}
           </Column>

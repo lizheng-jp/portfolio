@@ -140,6 +140,61 @@ graph TB
     GRAF -->|datasource| PROM
 ```
 
+### PoC Deployment and Monitoring
+
+```mermaid
+graph LR
+    DEV[Developer<br/>local changes] --> GIT[GitLab Repository]
+    GIT -->|push / merge| JENKINS[Jenkins Pipeline]
+
+    subgraph Pipeline["CI/CD Pipeline"]
+        CHECKOUT[Checkout source]
+        BUILD_FE[Build Frontend<br/>Next.js]
+        BUILD_BE[Build Backend<br/>Spring Boot WAR]
+        PACKAGE[Prepare deploy artifacts<br/>docker compose files / env]
+        DEPLOY[Deploy to PoC server]
+    end
+
+    JENKINS --> CHECKOUT
+    CHECKOUT --> BUILD_FE
+    CHECKOUT --> BUILD_BE
+    BUILD_FE --> PACKAGE
+    BUILD_BE --> PACKAGE
+    PACKAGE --> DEPLOY
+
+    subgraph Server["Internal PoC Server"]
+        subgraph ComposeRuntime["Docker Compose Runtime"]
+            FE[dpes-frontend<br/>Next.js :3001]
+            BE[dpes-backend<br/>Tomcat / Spring Boot :8080]
+            DB[(PostgreSQL)]
+            PROM[Prometheus]
+            GRAF[Grafana]
+        end
+    end
+
+    DEPLOY --> ComposeRuntime
+    FE -->|API request| BE
+    BE -->|JPA| DB
+    BE -->|/actuator/health<br/>/actuator/prometheus| PROM
+    PROM -->|datasource| GRAF
+    BE -->|PerformanceTimingLog| LOGS[Application logs]
+    GRAF --> DASH[Performance dashboard]
+    LOGS --> INVESTIGATE[Latency / error investigation]
+```
+
+For the internal PoC environment, I avoided a fully manual deployment process and set up a Jenkins and Docker Compose based flow so that fixes and feature updates could be reflected more quickly. The backend exposes `/health` and `/prometheus` through Spring Boot Actuator and Micrometer. Prometheus collects the metrics, and Grafana is used to check processing time and system status.
+
+For expensive operations such as GitLab API access, Gemini API calls, and metric aggregation, I also added `PerformanceTimingLog` so that bottlenecks can be investigated from application logs. This made it easier to identify candidates for caching, reducing repeated external API calls, and improving the calculation flow.
+
+| Area | Implementation | Purpose |
+|---|---|---|
+| CI/CD | Jenkins pipeline for build and deployment | Reflect PoC changes into the validation environment quickly |
+| Runtime | Docker Compose for frontend, backend, database, and monitoring services | Reduce environment differences and improve reproducibility |
+| Health check | Spring Boot Actuator `/health` | Confirm backend startup status after deployment |
+| Metrics | Micrometer + Prometheus | Collect response time, JVM, HTTP, and database-related metrics |
+| Dashboard | Grafana | Visualize system status and processing performance |
+| Logging | PerformanceTimingLog | Investigate bottlenecks in GitLab API, Gemini API, and aggregation processing |
+
 ## 6. Data Flow
 
 ```mermaid

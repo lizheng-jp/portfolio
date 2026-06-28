@@ -224,6 +224,12 @@ export interface Blog extends BasePageConfig {}
 export interface Work extends BasePageConfig {}
 
 /**
+ * Resume page configuration.
+ * @description Configuration for the Resume page, including metadata and navigation label.
+ */
+export interface Resume extends BasePageConfig {}
+
+/**
  * Gallery page configuration.
  * @description Configuration for the Gallery page, including metadata, navigation label, and image list.
  */

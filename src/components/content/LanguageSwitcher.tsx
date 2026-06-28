@@ -3,17 +3,19 @@ import { ContentLanguage, PostVariant } from "@/utils/utils";
 
 type LanguageSwitcherProps = {
   basePath: string;
-  slug: string;
+  slug?: string;
   currentLanguage?: ContentLanguage;
   variants: PostVariant[];
 };
 
-function getVariantHref(basePath: string, slug: string, variant: PostVariant) {
+function getVariantHref(basePath: string, slug: string | undefined, variant: PostVariant) {
+  const baseHref = slug ? `${basePath}/${slug}` : basePath;
+
   if (variant.isDefault || !variant.language) {
-    return `${basePath}/${slug}`;
+    return baseHref;
   }
 
-  return `${basePath}/${slug}/${variant.language}`;
+  return `${baseHref}/${variant.language}`;
 }
 
 function isSelected(currentLanguage: ContentLanguage | undefined, variant: PostVariant) {
