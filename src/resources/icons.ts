@@ -32,6 +32,7 @@ import {
   SiApachejmeter,
   SiFlutter,
   SiGooglegemini,
+  SiGithubactions,
   SiGrafana,
   SiJenkins,
   SiMlflow,
@@ -52,6 +53,7 @@ import {
 } from "react-icons/si";
 
 import {
+  FaAws,
   FaDiscord,
   FaFacebook,
   FaGithub,
@@ -99,6 +101,8 @@ export const iconLibrary: Record<string, IconType> = {
   supabase: SiSupabase,
   figma: SiFigma,
   flutter: SiFlutter,
+  githubActions: SiGithubactions,
+  awsLightsail: FaAws,
   jenkins: SiJenkins,
   grafana: SiGrafana,
   jmeter: SiApachejmeter,

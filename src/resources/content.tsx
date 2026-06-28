@@ -284,6 +284,14 @@ const about: About = {
             icon: "jenkins",
           },
           {
+            name: "GitHub Actions",
+            icon: "githubActions",
+          },
+          {
+            name: "AWS Lightsail",
+            icon: "awsLightsail",
+          },
+          {
             name: "Grafana",
             icon: "grafana",
           },
