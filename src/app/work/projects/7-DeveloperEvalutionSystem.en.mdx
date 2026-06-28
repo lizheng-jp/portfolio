@@ -1,0 +1,314 @@
+---
+title: "Developer Productivity Evaluation System"
+subtitle: "A SPACE-based developer analytics and AI feedback platform"
+publishedAt: "2026-06-28"
+projectStart: "2026-02"
+projectEnd: ""
+projectStatus: "in_progress"
+developmentType: "zero_to_one"
+developmentContext: "new_poc_system"
+summary: "A PoC system that combines GitLab engineering activity data, SPACE metrics, dashboards, and Gemini API analysis to visualize developer productivity and generate improvement suggestions."
+images: ""
+tag: "CI/CD, Jenkins, Docker, GitLab, Next.js, Spring Boot, SPACE Framework, Gemini API"
+language: en
+team: []
+link:
+---
+
+<img src="/images/projects/dpes/space.png" alt="SPACE Framework" style={{ width: '100%', height: 'auto' }} />
+
+## 0. Project Overview
+
+| Item | Details |
+|---|---|
+| Period | February 2026 - ongoing |
+| Status | In progress / PoC validation |
+| Development type | 0 to 1 product development |
+| My scope | Backend, frontend, database design, CI/CD, PoC environment setup, internal feedback collection |
+| Main deliverables | GitLab API integration, SPACE metric calculation, dashboard UI, AI evaluation flow, Jenkins pipeline, Docker Compose deployment |
+
+This project is an internal PoC system for evaluating developer productivity from both quantitative and qualitative perspectives. It collects engineering activity data from GitLab, calculates productivity indicators based on the SPACE framework, visualizes the results, and uses Gemini API to generate qualitative evaluation and improvement suggestions.
+
+The goal is not to reduce developer performance to a single activity count. Instead, the system tries to make productivity more explainable by combining activity, collaboration, efficiency, satisfaction, and AI-assisted code analysis.
+
+## 0.1 Current Implementation Status
+
+| Implemented | Under Validation | Improvement Candidates |
+|---|---|---|
+| Basic GitLab API data collection | User feedback organization | Redis cache |
+| SPACE metric categories | Performance improvement | Reuse AI analysis results |
+| Member-level and project-level score calculation | Evaluation accuracy | RAG-based knowledge retrieval |
+| Dashboard visualization | Prompt improvement | Authentication |
+| AI overall evaluation | System evaluation method | Async processing and job queue |
+
+This table intentionally includes both completed work and known improvement areas. The project is still being validated, so the important point is to show not only what was built, but also how the system is being improved through feedback and performance analysis.
+
+## 1. Background
+
+Many engineering organizations want to understand whether engineering productivity initiatives, including AI coding tools and process changes, are actually improving team performance. However, raw activity data such as commit count or merge request count is not enough. It can show activity volume, but it does not explain code complexity, collaboration quality, review friction, developer satisfaction, or improvement opportunities.
+
+This PoC was created to answer three practical questions:
+
+- How can engineering activity data be converted into understandable productivity indicators?
+- How can managers and developers see productivity trends without relying only on subjective impressions?
+- How can AI help explain the result and suggest concrete improvement actions?
+
+## 2. Problem Statement
+
+The system was designed to address the following issues:
+
+- Internal engineering data such as GitLab issues, merge requests, commits, reviews, and survey results was not connected as productivity evidence.
+- Activity volume alone could not fairly represent developer productivity or contribution quality.
+- Developers needed clearer feedback on what to improve, not just a score.
+- Managers needed a way to evaluate the effect of productivity improvement initiatives across projects or teams.
+- AI-generated evaluation needed to be explainable enough to support discussion, not treated as a black box.
+
+## 3. My Role
+
+I was responsible for the core implementation and PoC delivery:
+
+- Researched the feasibility of combining SPACE metrics with GitLab data and AI evaluation.
+- Designed and implemented the backend services, REST APIs, data model, and metric calculation logic.
+- Built the frontend dashboard with Next.js and TypeScript.
+- Integrated GitLab REST API for member, merge request, commit, issue, and review-related data.
+- Integrated Gemini API for AI-assisted merge request analysis and improvement suggestions.
+- Designed the AI output format and mapped AI evaluation ranks to system-side scores.
+- Built the Docker Compose based PoC environment.
+- Set up the Jenkins pipeline for continuous deployment to the internal PoC environment.
+- Collected feedback through internal demos, hands-on sessions, surveys, and regular reporting.
+
+## 4. Goals
+
+- Visualize developer and project productivity from multiple perspectives.
+- Combine quantitative metrics with AI-assisted qualitative feedback.
+- Provide a UI that managers and developers can understand without reading raw GitLab activity logs.
+- Improve search, analysis, and response performance enough for PoC usage.
+- Prepare the system for broader internal validation.
+
+## 5. System Architecture
+
+```mermaid
+graph TB
+    Browser[User Browser]
+
+    subgraph Compose["Docker Compose"]
+        subgraph Frontend["dpes-frontend<br/>Next.js"]
+            PAGE[App Router / Locale Pages]
+            VIEW[View Components]
+            HOOKS[Custom Hooks]
+            API_CLIENT[API Client<br/>fetch + no-store]
+            I18N[next-intl<br/>ja/en]
+        end
+
+        subgraph Backend["dpes-backend<br/>Spring Boot WAR on Tomcat"]
+            SEC[Spring Security<br/>Stateless]
+            CTRL[REST Controllers]
+            SVC[Service Layer]
+            REPO[Repository Layer]
+            ACT[Actuator<br/>/health /prometheus]
+            LOG[LoggingInterceptor<br/>PerformanceTimingLog]
+        end
+
+        subgraph DB["postgres_dev_pro_eval_db"]
+            PG[(PostgreSQL)]
+        end
+
+        subgraph Monitoring["Monitoring"]
+            PROM[Prometheus]
+            GRAF[Grafana]
+        end
+    end
+
+    subgraph External["External Services"]
+        GITLAB[GitLab REST API]
+        GEMINI[Google Gemini API]
+    end
+
+    Browser -->|HTTP :3001| PAGE
+    PAGE --> VIEW
+    VIEW --> HOOKS
+    HOOKS --> API_CLIENT
+    API_CLIENT -->|SSR: http://tomcat:8080<br/>CSR: same-origin API path| CTRL
+    SEC --> CTRL
+    CTRL --> SVC
+    LOG --> CTRL
+    SVC -->|JPA| REPO
+    REPO --> PG
+    SVC -->|RestTemplate + PRIVATE-TOKEN| GITLAB
+    SVC -->|google-genai SDK<br/>proxy support| GEMINI
+    PROM -->|scrape tomcat:8080/actuator/prometheus| ACT
+    GRAF -->|datasource| PROM
+```
+
+## 6. Data Flow
+
+```mermaid
+sequenceDiagram
+    participant FE as Frontend
+    participant BE as Backend
+    participant GL as GitLab API
+    participant DB as PostgreSQL
+    participant AI as Gemini API
+
+    FE->>BE: GET /api/gitlab/projects/{id}/space-metrics/members?aiEnabled=true
+    BE->>GL: GET /projects/{id}/members
+    GL-->>BE: Member list
+
+    BE->>GL: GET /projects/{id}/merge_requests
+    GL-->>BE: Merge request list
+
+    opt AI correction enabled
+        BE->>GL: GET MR diff
+        GL-->>BE: MR diff
+        BE->>AI: Classify change type, complexity, maintainability
+        AI-->>BE: AI MR evaluation JSON
+        BE->>DB: SAVE ai_mr_evaluation
+    end
+
+    par Per-member processing
+        BE->>GL: GET /projects/{id}/repository/commits
+        GL-->>BE: Commit data
+        BE->>GL: GET /projects/{id}/issues
+        GL-->>BE: Issue data
+        BE->>DB: SELECT project_satisfaction_survey
+        DB-->>BE: Survey aggregation
+    end
+
+    BE->>DB: SELECT FROM evaluation_metrics_config
+    DB-->>BE: Metric weight configuration
+    BE->>BE: Calculate SPACE score + survey score + AI correction score
+    BE-->>FE: Member-level SPACE metrics and AI correction results
+```
+
+## 7. Technology Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Backend | Spring Boot / Java | GitLab integration, metric calculation, REST API, Gemini API analysis |
+| Frontend | Next.js / TypeScript | Dashboard UI, metric visualization, localized screens |
+| Database | PostgreSQL | Metric configuration, survey data, AI evaluation results |
+| DevOps | Jenkins | CI/CD pipeline |
+| Container | Docker / Docker Compose | Standardized PoC runtime and deployment |
+| Source data | GitLab | Issues, merge requests, commits, reviews, project members |
+| Monitoring | Actuator / Prometheus / Grafana / Micrometer | Health check, metrics scraping, performance observation |
+
+## 8. SPACE Framework Design
+
+SPACE is useful because developer productivity should not be measured by a single metric. In this project, I used it as a structure for organizing multiple categories of evidence.
+
+| Category | Example Metrics | Purpose |
+|---|---|---|
+| Satisfaction | Survey result | Estimate developer satisfaction and friction |
+| Performance | Merged MRs, bug-related signals | Understand delivery and quality signals |
+| Activity | Commits, MRs, comments | Show engineering activity volume |
+| Communication | Review comments, MR discussions | Understand collaboration and review behavior |
+| Efficiency | Lead time, review time | Identify bottlenecks in the development flow |
+
+The metrics and weights are not treated as universal truth. They are configurable and should be adjusted based on the team, project type, and feedback from users.
+
+## 9. AI Design
+
+The AI component was designed to supplement quantitative metrics, not replace them. GitLab activity data can show what happened, but it cannot always explain whether a change was complex, risky, maintainable, or useful.
+
+The system uses Gemini API for tasks such as:
+
+- Classifying merge request changes.
+- Estimating complexity, maintainability, and improvement areas.
+- Generating qualitative evaluation text.
+- Producing improvement suggestions for developers or teams.
+
+To make AI output easier to control, I designed the result as structured JSON instead of free-form text. For scoring, I avoided using raw continuous values from the AI response. Instead, the AI evaluation is converted into discrete ranks such as High, Middle, and Low, and the system maps those ranks to score adjustments.
+
+This design makes the output easier to validate, debug, and explain to users.
+
+## 10. Key Engineering Challenges
+
+### 10.1 Defining the SPACE Score
+
+The most difficult part was not collecting data, but deciding how to convert multiple metrics into a meaningful score. There is no single correct formula for developer productivity. Metric selection, thresholds, weights, and AI correction logic all require careful design.
+
+I handled this by separating metric configuration from calculation logic and treating the score as an explainable indicator rather than an absolute evaluation.
+
+### 10.2 Backend Processing Time
+
+After a user selects a project, developer, and period, the backend needs to fetch GitLab data, calculate metrics, request AI analysis, save AI evaluation results, and generate the final response. Running these operations synchronously caused long response times.
+
+To analyze the bottleneck, I added backend monitoring with Actuator, Prometheus, Grafana, Micrometer, and performance timing logs. The next improvement candidates are caching AI results, reducing repeated API calls, improving the calculation flow, and introducing asynchronous processing.
+
+### 10.3 AI Evaluation Quality
+
+AI-generated productivity feedback does not have an objective ground truth. This makes evaluation difficult. The project therefore needs a feedback loop with real users, including managers and developers, to check whether the suggestions are useful and fair.
+
+I treated prompt improvement, user feedback, and result explanation as part of the product design, not only as an implementation detail.
+
+### 10.4 Deployment in an Internal PoC Environment
+
+Fast iteration was important during the PoC. Manual deployment would have slowed down feedback collection, so I proposed and implemented a Jenkins and Docker Compose based deployment flow. This allowed the team to reflect fixes and new features into the PoC environment more consistently.
+
+## 11. Results
+
+The project is still in progress, but the PoC has already produced several concrete outcomes:
+
+- Built a modern frontend with Next.js and TypeScript.
+- Implemented GitLab API integration for engineering activity data.
+- Implemented SPACE-based member and project productivity calculation.
+- Added AI-assisted evaluation and improvement suggestion generation with Gemini API.
+- Built dashboards to visualize productivity metrics and AI feedback.
+- Set up Docker Compose based runtime and Jenkins based CI/CD deployment.
+- Shared practical know-how about using generative AI in internal software development.
+- Conducted internal validation and collected user feedback through demos, hands-on sessions, and surveys.
+
+## 12. Remaining Improvements
+
+- Add authentication before broader rollout.
+- Add Redis or another cache layer to reduce repeated GitLab and Gemini API calls.
+- Reuse stored AI analysis results instead of re-analyzing the same merge request diff.
+- Improve the SPACE score calculation flow and reduce N+1 query patterns.
+- Introduce asynchronous processing for expensive analysis tasks.
+- Add RAG so AI suggestions can use internal project rules, coding standards, and previous feedback.
+- Define a stronger evaluation process for AI output quality and usefulness.
+
+## 13. Collaboration and Ownership
+
+This project required more than implementation. I also worked on communication and adoption:
+
+- Shared progress through twice-weekly group meetings and monthly manager reports.
+- Ran hands-on sessions to explain how to use the system.
+- Created surveys and collected user feedback from managers and developers.
+- Reflected feedback into UI, metric explanation, and improvement candidates.
+- Proposed CI/CD automation to reduce manual deployment work during PoC iteration.
+
+The most important product lesson was that a productivity evaluation system must be transparent. If users cannot understand why a score or suggestion was produced, the system will not be trusted.
+
+## 14. What I Learned
+
+### Technical Lessons
+
+- How to build a full-stack internal analytics application with Spring Boot, Next.js, PostgreSQL, Docker, and Jenkins.
+- How to integrate Gemini API with structured output and prompt design.
+- How to combine quantitative metrics with AI-assisted qualitative evaluation.
+- How to use Actuator, Prometheus, Grafana, and logging to identify backend bottlenecks.
+
+### Product Lessons
+
+- Developer productivity should be treated as a multi-dimensional signal, not a single ranking.
+- AI feedback needs explanation, constraints, and user feedback to become useful.
+- Managers and developers need different views of the same data.
+- A PoC system should make assumptions visible so they can be challenged and improved.
+
+## 15. Interview Pitch
+
+### Short Version
+
+I built a PoC developer productivity evaluation system that collects GitLab issues, merge requests, commits, and review data, calculates SPACE-based productivity indicators, and uses Gemini API to generate qualitative evaluation and improvement suggestions. I was responsible for the backend, frontend, metric calculation, AI evaluation flow, Docker Compose environment, and Jenkins deployment pipeline.
+
+### Detailed Version
+
+This project was created to evaluate developer productivity from multiple perspectives instead of relying only on activity count. The backend integrates with GitLab API to collect engineering activity data and calculates member-level and project-level metrics based on the SPACE framework. I also integrated survey data and Gemini API analysis to supplement quantitative metrics with qualitative feedback.
+
+On the frontend, I used Next.js and TypeScript to build dashboards that show productivity indicators and AI-generated improvement suggestions. On the backend, I implemented Spring Boot services for GitLab integration, metric calculation, AI evaluation, data persistence, and monitoring. I also built the Docker Compose runtime and Jenkins pipeline so the PoC environment could be updated continuously.
+
+The hardest part was designing a fair and explainable score. There is no objective formula for developer productivity, so I designed the system to separate metric configuration from calculation logic and used AI output as structured ranks rather than uncontrolled numerical scores. I also collected feedback through internal demos, hands-on sessions, and surveys so the system could be improved based on real user reactions.
+
+This project gave me practical experience in building an AI-enabled internal platform that combines backend engineering, data analysis, AI integration, monitoring, deployment, and stakeholder communication.
+
