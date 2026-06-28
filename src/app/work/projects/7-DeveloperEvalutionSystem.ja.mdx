@@ -134,6 +134,61 @@ graph TB
     GRAF -->|datasource| PROM
 ```
 
+### PoC デプロイ・監視構成
+
+```mermaid
+graph LR
+    DEV[Developer<br/>local changes] --> GIT[GitLab Repository]
+    GIT -->|push / merge| JENKINS[Jenkins Pipeline]
+
+    subgraph Pipeline["CI/CD Pipeline"]
+        CHECKOUT[Checkout source]
+        BUILD_FE[Build Frontend<br/>Next.js]
+        BUILD_BE[Build Backend<br/>Spring Boot WAR]
+        PACKAGE[Prepare deploy artifacts<br/>docker compose files / env]
+        DEPLOY[Deploy to PoC server]
+    end
+
+    JENKINS --> CHECKOUT
+    CHECKOUT --> BUILD_FE
+    CHECKOUT --> BUILD_BE
+    BUILD_FE --> PACKAGE
+    BUILD_BE --> PACKAGE
+    PACKAGE --> DEPLOY
+
+    subgraph Server["Internal PoC Server"]
+        subgraph ComposeRuntime["Docker Compose Runtime"]
+            FE[dpes-frontend<br/>Next.js :3001]
+            BE[dpes-backend<br/>Tomcat / Spring Boot :8080]
+            DB[(PostgreSQL)]
+            PROM[Prometheus]
+            GRAF[Grafana]
+        end
+    end
+
+    DEPLOY --> ComposeRuntime
+    FE -->|API request| BE
+    BE -->|JPA| DB
+    BE -->|/actuator/health<br/>/actuator/prometheus| PROM
+    PROM -->|datasource| GRAF
+    BE -->|PerformanceTimingLog| LOGS[Application logs]
+    GRAF --> DASH[Performance dashboard]
+    LOGS --> INVESTIGATE[Latency / error investigation]
+```
+
+この構成では、PoC 環境で素早くフィードバックを反映できるように、手動デプロイではなく Jenkins と Docker Compose を使った反映フローを整備した。
+バックエンドは Actuator / Micrometer によって `/health` と `/prometheus` を公開し、Prometheus がメトリクスを収集し、Grafana で処理時間やシステム状態を確認できるようにした。
+また、GitLab API や Gemini API 呼び出しを含む重い処理については、`PerformanceTimingLog` によって処理時間を確認し、N+1 クエリ、外部 API 呼び出し回数、キャッシュ候補を特定するための材料にした。
+
+| 領域 | 実施内容 | 目的 |
+|---|---|---|
+| CI/CD | Jenkins pipeline によるビルド・反映 | PoC の修正を素早く検証環境へ反映する |
+| Runtime | Docker Compose で Frontend / Backend / DB / Monitoring を起動 | 環境差分を減らし、再現性を高める |
+| Health check | Spring Boot Actuator `/health` | デプロイ後にバックエンドの起動状態を確認する |
+| Metrics | Micrometer + Prometheus | レスポンス時間、JVM、HTTP、DB 周辺の状態を収集する |
+| Dashboard | Grafana | 処理性能やシステム状態を可視化する |
+| Logging | PerformanceTimingLog | GitLab API・Gemini API・集計処理のボトルネックを調査する |
+
 ### データフロー
 
 ```mermaid
@@ -198,6 +253,69 @@ SPACE は、開発者生産性を単一の数値ではなく、複数の観点�
 | Efficiency | Lead time、Review time | 開発フローの詰まりを見つける |
 
 上記は参考イメージであり、実際の実装では各開発者・各部門に合わせて調整する予定です。
+
+## 4.1 AI 評価とガードレール
+
+本システムでは、AI を開発者の評価を直接決定する仕組みとしてではなく、定量指標だけでは判断しにくい部分を補助的に説明するための仕組みとして位置付けている。
+GitLab の活動データは「何が行われたか」は示せるが、変更の複雑度、保守性、リスク、改善余地などを十分に説明できない場合がある。
+そのため、Gemini API を用いて Merge Request の差分を分析し、変更種別・複雑度・保守性・リスク・改善提案などを構造化データとして取得する設計にした。
+
+### AI 評価で確認する観点
+
+AI の出力は、そのまま信用するのではなく、以下の観点で確認・改善する対象として扱う。
+
+| 評価観点 | 確認内容 | 例 |
+|---|---|---|
+| 出力形式 | 期待した JSON 形式で返却されるか | parse 可能で DB 保存できる |
+| 変更分類 | MR の内容に合った変更種別を判定できているか | refactoring / bug fix / feature / test improvement |
+| 理由の妥当性 | 評価理由が MR diff の内容に基づいているか | 複雑度、影響範囲、テスト不足などを説明できる |
+| 改善提案の実行可能性 | 開発者が実際に行動できる提案になっているか | テスト追加、MR 分割、API 仕様の明文化 |
+| 一貫性 | 類似する変更に対して大きく異なる評価をしないか | 同程度の低リスク修正が極端に異なる評価にならない |
+| 人による確認 | 管理者・開発者のフィードバックと大きく乖離していないか | デモ、ハンズオン、アンケートで確認 |
+
+AI の出力例は以下のような構造を想定している。
+
+```json
+{
+  "changeType": "refactoring",
+  "complexity": "middle",
+  "maintainability": "high",
+  "risk": "low",
+  "reason": "The change reduces duplicated logic and does not affect public API behavior.",
+  "suggestion": "Add regression tests for the affected service method."
+}
+```
+
+このように自由記述ではなく構造化出力にすることで、画面表示・保存・スコア補正・エラー処理を行いやすくしている。
+
+### ガードレール
+
+AI 出力を安全に利用するため、以下のような制約を設計上のガードレールとして整理した。
+
+| ガードレール | 内容 | 目的 |
+|---|---|---|
+| 構造化出力 | Gemini API の回答を固定の JSON schema に近い形式へ制限する | 自由記述による不安定な出力を避ける |
+| スコア範囲の制限 | AI に連続値のスコアを直接決めさせず、High / Middle / Low などのランクに変換する | AI が最終評価を直接決定しないようにする |
+| フォールバック | AI 呼び出し失敗時は GitLab ベースの定量指標のみで表示する | API 障害時もシステムを利用可能にする |
+| 機密情報の扱い | token、個人情報、不要な内部情報を AI に送らない | セキュリティ・プライバシーリスクを下げる |
+| Prompt 制約 | 個人の能力や人格ではなく、MR 内容・変更リスク・改善点を評価させる | 評価対象を技術的根拠に限定する |
+| 人による確認 | AI 評価を絶対的な評価ではなく、利用者フィードバックで改善する | 誤判定や不公平な評価を防ぐ |
+| 可観測性 | API レイテンシ、失敗率、JSON parse error、再実行回数を確認する | 信頼性・コスト・性能課題を把握する |
+| 説明可能性 | 各評価ランクに理由と改善提案を必ず含める | 利用者が納得・議論できる状態にする |
+
+想定している挙動は以下である。
+
+- AI 応答が有効な場合は、構造化された評価結果を保存し、補助的な改善提案として表示する。
+- AI 応答が不正な形式の場合は、AI 補正を無視し、SPACE 指標による定量評価を優先する。
+- Gemini API が利用できない場合でも、GitLab データに基づくダッシュボード表示は継続する。
+- 利用者が AI の提案に納得できない場合は、Prompt、評価基準、重み付けを改善するためのフィードバックとして扱う。
+
+### 現時点の限界
+
+- 開発者生産性や AI 評価には絶対的な正解が存在しない。
+- Prompt や評価指標の重み付けは、利用者フィードバックを基に継続的に改善する必要がある。
+- AI による改善提案は有用な補助情報になり得るが、人事評価の根拠として直接利用すべきではない。
+- より精度を高めるには、社内の開発ルール、コーディング規約、過去のフィードバックを参照できる RAG 構成が必要になる可能性がある。
 
 
 ## 5. 実装で難しかった点

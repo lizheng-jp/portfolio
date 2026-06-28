@@ -174,7 +174,7 @@ export async function ProjectPostView({
           <Icon name="document" size="xs" />
           On this page
         </Row>
-        <HeadingNav fitHeight />
+        <HeadingNav fitHeight header={false} />
       </Column>
     </Row>
   );

@@ -221,31 +221,95 @@ To make AI output easier to control, I designed the result as structured JSON in
 
 This design makes the output easier to validate, debug, and explain to users.
 
-## 10. Key Engineering Challenges
+## 10. AI Evaluation and Guardrails
 
-### 10.1 Defining the SPACE Score
+Because the system uses AI to support developer productivity analysis, I designed the AI output as a controlled assistant signal rather than a direct performance judgment. The purpose of the AI component is to explain possible improvement areas, not to replace quantitative metrics or human review.
+
+### 10.1 Evaluation Criteria
+
+The AI output should be evaluated from both technical and product perspectives.
+
+| Evaluation Area | What I Check | Example |
+|---|---|---|
+| Format validity | Whether the response follows the expected JSON structure | The response can be parsed and stored without manual cleanup |
+| Change classification | Whether the AI correctly identifies the type of merge request | Refactoring, bug fix, feature addition, test improvement |
+| Reason quality | Whether the explanation is grounded in the MR diff | The reason refers to code structure, complexity, or test impact |
+| Actionability | Whether the suggestion can be executed by a developer | Add regression tests, split a large MR, document API behavior |
+| Consistency | Whether similar inputs produce similar evaluation ranks | Similar low-risk refactoring MRs should not receive very different ratings |
+| Human agreement | Whether managers or developers consider the result useful | Feedback from demos, hands-on sessions, and surveys |
+
+An expected AI response is designed to be structured, bounded, and explainable:
+
+```json
+{
+  "changeType": "refactoring",
+  "complexity": "middle",
+  "maintainability": "high",
+  "risk": "low",
+  "reason": "The change reduces duplicated logic and does not affect public API behavior.",
+  "suggestion": "Add regression tests for the affected service method."
+}
+```
+
+This makes it possible to validate the output before using it in the UI or score calculation.
+
+### 10.2 Guardrails
+
+The main guardrail is that AI does not directly decide a developer's final productivity score. AI output is treated as a supplementary signal and is mapped into limited ranks such as High, Middle, and Low.
+
+| Guardrail | Implementation Idea | Purpose |
+|---|---|---|
+| Structured output | Require Gemini API to return a predefined JSON schema | Avoid unstable free-form text |
+| Bounded scoring | Map AI output to High / Middle / Low ranks | Prevent uncontrolled numeric scores |
+| Fallback behavior | Use only quantitative SPACE metrics if AI fails | Keep the system usable during API errors |
+| Sensitive data handling | Avoid sending tokens, personal information, and unnecessary internal details | Reduce privacy and security risk |
+| Prompt constraints | Ask AI to evaluate the MR content, not the person's ability or personality | Keep feedback focused on technical evidence |
+| Human review | Use feedback from managers and developers to validate usefulness | Avoid treating AI output as objective truth |
+| Observability | Track latency, failures, JSON parse errors, and repeated API calls | Identify reliability and cost issues |
+| Explainability | Require every rank to include a reason and suggestion | Make the result discussable |
+
+The intended behavior is:
+
+- If the AI response is valid, the system stores the structured result and shows it as supporting feedback.
+- If the AI response is invalid, the system ignores the AI correction and keeps the quantitative SPACE result.
+- If Gemini API is unavailable, the dashboard should still work with GitLab-based metrics.
+- If users disagree with the AI suggestion, their feedback should be used to improve prompts, metric weights, or evaluation criteria.
+
+### 10.3 Known Limitations
+
+AI evaluation in this system still has limitations:
+
+- There is no absolute ground truth for developer productivity.
+- Prompt quality and metric weights need continuous tuning.
+- AI suggestions can be useful but should not be used as personnel evaluation evidence without human review.
+- More user feedback is needed to evaluate whether the suggestions are fair and actionable.
+- A future RAG layer may be needed so AI suggestions can refer to internal coding standards, project rules, and previous feedback.
+
+## 11. Key Engineering Challenges
+
+### 11.1 Defining the SPACE Score
 
 The most difficult part was not collecting data, but deciding how to convert multiple metrics into a meaningful score. There is no single correct formula for developer productivity. Metric selection, thresholds, weights, and AI correction logic all require careful design.
 
 I handled this by separating metric configuration from calculation logic and treating the score as an explainable indicator rather than an absolute evaluation.
 
-### 10.2 Backend Processing Time
+### 11.2 Backend Processing Time
 
 After a user selects a project, developer, and period, the backend needs to fetch GitLab data, calculate metrics, request AI analysis, save AI evaluation results, and generate the final response. Running these operations synchronously caused long response times.
 
 To analyze the bottleneck, I added backend monitoring with Actuator, Prometheus, Grafana, Micrometer, and performance timing logs. The next improvement candidates are caching AI results, reducing repeated API calls, improving the calculation flow, and introducing asynchronous processing.
 
-### 10.3 AI Evaluation Quality
+### 11.3 AI Evaluation Quality
 
 AI-generated productivity feedback does not have an objective ground truth. This makes evaluation difficult. The project therefore needs a feedback loop with real users, including managers and developers, to check whether the suggestions are useful and fair.
 
 I treated prompt improvement, user feedback, and result explanation as part of the product design, not only as an implementation detail.
 
-### 10.4 Deployment in an Internal PoC Environment
+### 11.4 Deployment in an Internal PoC Environment
 
 Fast iteration was important during the PoC. Manual deployment would have slowed down feedback collection, so I proposed and implemented a Jenkins and Docker Compose based deployment flow. This allowed the team to reflect fixes and new features into the PoC environment more consistently.
 
-## 11. Results
+## 12. Results
 
 The project is still in progress, but the PoC has already produced several concrete outcomes:
 
@@ -258,7 +322,7 @@ The project is still in progress, but the PoC has already produced several concr
 - Shared practical know-how about using generative AI in internal software development.
 - Conducted internal validation and collected user feedback through demos, hands-on sessions, and surveys.
 
-## 12. Remaining Improvements
+## 13. Remaining Improvements
 
 - Add authentication before broader rollout.
 - Add Redis or another cache layer to reduce repeated GitLab and Gemini API calls.
@@ -268,7 +332,7 @@ The project is still in progress, but the PoC has already produced several concr
 - Add RAG so AI suggestions can use internal project rules, coding standards, and previous feedback.
 - Define a stronger evaluation process for AI output quality and usefulness.
 
-## 13. Collaboration and Ownership
+## 14. Collaboration and Ownership
 
 This project required more than implementation. I also worked on communication and adoption:
 
@@ -280,7 +344,7 @@ This project required more than implementation. I also worked on communication a
 
 The most important product lesson was that a productivity evaluation system must be transparent. If users cannot understand why a score or suggestion was produced, the system will not be trusted.
 
-## 14. What I Learned
+## 15. What I Learned
 
 ### Technical Lessons
 
@@ -296,7 +360,7 @@ The most important product lesson was that a productivity evaluation system must
 - Managers and developers need different views of the same data.
 - A PoC system should make assumptions visible so they can be challenged and improved.
 
-## 15. Interview Pitch
+## 16. Interview Pitch
 
 ### Short Version
 
@@ -311,4 +375,3 @@ On the frontend, I used Next.js and TypeScript to build dashboards that show pro
 The hardest part was designing a fair and explainable score. There is no objective formula for developer productivity, so I designed the system to separate metric configuration from calculation logic and used AI output as structured ranks rather than uncontrolled numerical scores. I also collected feedback through internal demos, hands-on sessions, and surveys so the system could be improved based on real user reactions.
 
 This project gave me practical experience in building an AI-enabled internal platform that combines backend engineering, data analysis, AI integration, monitoring, deployment, and stakeholder communication.
-

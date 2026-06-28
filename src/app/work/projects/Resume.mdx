@@ -1,27 +1,31 @@
 ---
 title: "Resume"
 publishedAt: "2025-10-05"
-summary: "Software engineer with expertise in cross-platform mobile development, backend systems, and machine learning applications, fluent in Japanese, English, and Chinese."
+summary: "AI-enabled software engineer with experience in backend systems, developer analytics, cross-platform mobile applications, and machine learning pipelines, fluent in Japanese, English, and Chinese."
 language: en
 ---
 
 # ZHENG LI
 
-**Software Engineer**  
+**AI-enabled Software Engineer**  
 📍 Osaka, Japan • 📧 eric.lizheng@outlook.com • ☎️ +81-70-8382-0358  
 [GitHub](https://github.com/1994ericlee) | [LinkedIn](https://www.linkedin.com/in/zheng-li-a30068293/)
+
+Software engineer working on internal business applications, developer productivity analytics, and machine learning systems. Experienced in Spring Boot, Next.js, PostgreSQL, Docker, Jenkins, Grafana, Flutter, Android, PyTorch, and Gemini API integration.
 
 ---
 
 ## 💼 Experience
 
 ### Software Engineer — Sharp Corp, Osaka _(Apr 2025 – Present)_
-- **QRCode Platform**: Built a cross-platform Flutter app to display employee QR codes with secure login, background auto-refresh, and Firebase Messaging integration.
-- **Meeting Room Management**: Implemented visual dashboard features for meeting room availability using DataTables and Grafana.  
+- **Developer Productivity Evaluation System**: Built a PoC platform using Spring Boot, Next.js, GitLab API, PostgreSQL, Docker Compose, Jenkins, Prometheus, Grafana, and Gemini API to calculate SPACE-based productivity metrics and generate AI-assisted improvement suggestions.
+- **Meeting Room Management**: Developed a Spring Boot and PostgreSQL based analytics dashboard with Grafana and DataTables, enabling seven types of statistical analysis over 500,000+ records across 756 meeting rooms within 10 seconds.
+- **QRCode Platform**: Built a cross-platform Flutter app for 20,000+ internal employees, supporting secure WebView authentication, client certificate handling, background refresh, and Firebase Messaging.
+- **Log Monitoring System**: Implemented batch-based log collection, registration, administrator approval, and email notification features for an internal monitoring workflow.
 
 ### IT Engineer — Sharp Sensing Technology Corp, Nara _(Apr 2024 – Mar 2025)_
-- **Visual Process Mapping**: Designed and deployed a machine learning pipeline for anomaly detection in camera modules.
-- **Smart Factory Project**: Refactored Android QR scanning app using MVVM and Retrofit/OkHttp, improving performance by 20% and reducing update deployment time by 40%.
+- **Visual Process Mapping**: Designed and deployed a PyTorch-based machine learning pipeline for camera module anomaly detection, achieving 91% recall and 99% classification accuracy.
+- **Smart Factory Project**: Refactored an Android QR scanning app using MVVM, Retrofit, and OkHttp, improving performance by 20% and reducing release update work by 6 hours per release.
 
 ### Student Researcher — Ritsumeikan University, Shiga _(Sep 2022 – Mar 2024)_
 - **Defog by ToF**: Implemented a complex-valued neural network to reduce ToF (Time-of-Flight) ranging errors caused by fog, improving measurement accuracy by 20%  
@@ -29,7 +33,7 @@ language: en
 
 ### Android Engineer — Shanghai Golden Bridge InfoTech Co., Ltd., Shanghai _(Jul 2016 – Nov 2018)_
 - **Paperless Meeting System**: Developed Android applications for online meetings and secure document sharing across enterprise clients.
-- **HeyShare**: Collaborated on internal collaboration app with cross-device synchronization (details optional, can expand).
+- **HeyShare**: Collaborated on an internal collaboration app with cross-device synchronization.
 
 ### Android Development Intern — Shanghai Golden Bridge InfoTech Co., Ltd., Shanghai _(Dec 2015 – Jun 2016)_
 - Participated in QA and development of a paperless meeting system; implemented new features and performed debugging tasks.
@@ -39,7 +43,7 @@ language: en
 ## 🎓 Education
 
 **M.Sc. in Information Science and Engineering**  
-Ritsumeikan University, Shiga , Japan — 2022–2024
+Ritsumeikan University, Shiga, Japan — 2022–2024
 
 **B.Sc. in Software Engineering**  
 Nanjing Xiaozhuang University, China — 2012–2016
@@ -48,13 +52,15 @@ Nanjing Xiaozhuang University, China — 2012–2016
 
 ## 🛠️ Skills
 
-- **Languages**: Python, Dart, Java, JavaScript, HTML, CSS
-- **Frameworks**: Android, Flutter, PyTorch, Spring Boot
-- **Tools**: Git, Docker, Firebase, MLflow, Pandas, NumPy, Grafana 
+- **Languages**: Python, Dart, Java, JavaScript, TypeScript, HTML, CSS
+- **Backend / Web**: Spring Boot, RESTful APIs, Next.js, PostgreSQL, SQLite
+- **AI / ML**: PyTorch, TensorFlow, MLflow, Pandas, NumPy, SciPy, Scikit-learn, Matplotlib, Anomaly Detection, Image Segmentation
+- **GenAI Engineering**: Gemini API integration, structured JSON output, prompt design, AI evaluation criteria, guardrails, AI-assisted developer analytics
+- **Mobile**: Android, Flutter, Kotlin, Java, WebView Auth, Firebase Messaging, QR Code Handling
+- **DevOps / Observability**: Git, Docker, Docker Compose, Jenkins, Grafana, Prometheus, Micrometer, Spring Boot Actuator, JMeter
 - **Databases**: PostgreSQL, SQLite
-- **Other**: RESTful APIs, WebView Auth, SSL with Client Certificates, QR Code Handling
+- **Other**: SSL with Client Certificates, proxy-aware application development
 - **Software Development Process**: Detailed Design, Implementation, Unit Testing, Deployment, Code Review, Documentation
-- **Machine Learning**: Data Preprocessing, Model Training, Hyperparameter Tuning, Model Evaluation, Anomaly Detection, Image Segmentation
 - **ML Models**: CNN, ResNet, PatchCore, SAM, Complex-Valued Neural Networks
 ---
 
@@ -67,9 +73,16 @@ Nanjing Xiaozhuang University, China — 2012–2016
 ---
 
 ## 📂 Projects
+### Developer Productivity Evaluation System _(Spring Boot + Next.js + GitLab API + Gemini API + Docker + Jenkins)_
+- Built a 0-to-1 internal PoC system to visualize developer productivity using GitLab issues, merge requests, commits, review data, satisfaction surveys, and SPACE-based metrics.
+- Implemented backend services for GitLab API integration, metric calculation, AI-assisted merge request analysis, data persistence, and REST API delivery.
+- Integrated Gemini API with structured JSON output, bounded High/Middle/Low evaluation ranks, fallback behavior, and human-feedback-oriented guardrails.
+- Built a Next.js dashboard to display project-level and member-level productivity indicators, AI feedback, and improvement suggestions.
+- Set up Docker Compose based runtime, Jenkins deployment flow, and monitoring with Spring Boot Actuator, Prometheus, Grafana, Micrometer, and performance timing logs.
+
 ### Meeting Room Management System _(Spring Boot + PostgreSQL + JavaScript + Grafana)_
-- Developed a web-based dashboard to monitor and overview meeting room usage.
-- Implemented data visualization by connecting Grafana to backend APIs for analytics 
+- Developed a web-based dashboard to monitor meeting room usage.
+- Implemented data visualization by connecting Grafana to backend APIs for analytics.
 - Developed an interactive data heatmap on the frontend using DataTables.js.
 - Refactored computation methods and algorithms to enhance query speed and reduce memory usage, achieving seven different statistical analyses over 500,000 records (past three years, 756 meeting rooms) within 10 seconds.
 
@@ -87,7 +100,7 @@ Nanjing Xiaozhuang University, China — 2012–2016
 ### Anomaly Detection Pipeline _(Python + PyTorch)_
 - Built a multi-model inference pipeline to detect manufacturing defects from sensor data.
 - Achieved 91% recall and 99% classification accuracy with efficient post-processing.
-- Used SAM for image segmentation to remove irrelevant areas, improving model accuracy by 5%
+- Used SAM for image segmentation to remove irrelevant areas, improving model accuracy by 5%.
 - Implemented the PatchCore anomaly detection model to achieve efficient performance with substantially lower computational demands, enabling stable detection results even on constrained hardware.
 ---
 
