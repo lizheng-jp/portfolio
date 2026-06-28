@@ -12,7 +12,7 @@ images: ""
 tag: "CI/CD, Jenkins, Docker, GitLab, Next.js, Spring Boot, SPACE, Gemini API"
 language: ja
 team: []
-link: 
+link: "https://dpes.lizheng.cc"
 ---
 
 <img src="/images/projects/dpes/space.png" alt="SPACE Framework" style={{ width: '100%', height: 'auto' }} />
@@ -24,8 +24,11 @@ link:
 | 期間 | 2026年2月 - 継続中 |
 | ステータス | 進行中 / PoC 検証中 |
 | 開発タイプ | 0 → 1 の新規開発 |
-| 担当範囲 | バックエンド、フロントエンド、CI/CD、PoC 環境構築、部内Feedback収集 |
-| 主な成果物 | GitLab API 連携、SPACE 指標計算、可視化画面、Jenkins pipeline、Docker Compose 構成 |
+| 担当範囲 | バックエンド、フロントエンド、CI/CD、PoC 環境構築、AWS デモ環境構築、部内Feedback収集 |
+| 主な成果物 | GitLab API 連携、SPACE 指標計算、可視化画面、Jenkins pipeline、Docker Compose 構成、パスワード保護付き AWS デモ |
+| デモ | [パスワード保護付き AWS デモ](https://dpes.lizheng.cc) |
+
+公開用デモとして、AWS Lightsail 上に Docker Compose と Caddy を用いたパスワード保護付き環境を構築した。社内データや実際の GitLab 情報は公開せず、合成したプロジェクト、開発者、Merge Request、レビュー情報を用いて、画面遷移と分析フローを確認できるようにしている。
 
 ## 0.1 実装状況と改善候補
 
@@ -36,6 +39,7 @@ link:
 | メンバー別・プロジェクト別のスコア計算 | 精度改善 | RAG構築 |
 | 評価結果の可視化 | Prompt改善 | 認証追加 |
 | AI総合評価 | システム評価手段確定 |  |
+| パスワード保護付き AWS デモ | 実 Gemini API 呼び出しの検証 | IaC 化 |
 
 この表は、公開可能な範囲でプロジェクトの進捗を整理したものである。
 実装済みの内容だけでなく、検証中の課題や改善候補も明示することで、プロジェクトを継続的に改善していることを伝えやすくしている。

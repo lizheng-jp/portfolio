@@ -12,7 +12,7 @@ images: ""
 tag: "CI/CD, Jenkins, Docker, GitLab, Next.js, Spring Boot, SPACE Framework, Gemini API"
 language: en
 team: []
-link:
+link: "https://dpes.lizheng.cc"
 ---
 
 <img src="/images/projects/dpes/space.png" alt="SPACE Framework" style={{ width: '100%', height: 'auto' }} />
@@ -24,12 +24,15 @@ link:
 | Period | February 2026 - ongoing |
 | Status | In progress / PoC validation |
 | Development type | 0 to 1 product development |
-| My scope | Backend, frontend, database design, CI/CD, PoC environment setup, internal feedback collection |
-| Main deliverables | GitLab API integration, SPACE metric calculation, dashboard UI, AI evaluation flow, Jenkins pipeline, Docker Compose deployment |
+| My scope | Backend, frontend, database design, CI/CD, PoC environment setup, AWS demo deployment, internal feedback collection |
+| Main deliverables | GitLab API integration, SPACE metric calculation, dashboard UI, AI evaluation flow, Jenkins pipeline, Docker Compose deployment, password-protected AWS demo |
+| Demo | [Password-protected AWS demo](https://dpes.lizheng.cc) using synthetic GitLab data |
 
 This project is an internal PoC system for evaluating developer productivity from both quantitative and qualitative perspectives. It collects engineering activity data from GitLab, calculates productivity indicators based on the SPACE framework, visualizes the results, and uses Gemini API to generate qualitative evaluation and improvement suggestions.
 
 The goal is not to reduce developer performance to a single activity count. Instead, the system tries to make productivity more explainable by combining activity, collaboration, efficiency, satisfaction, and AI-assisted code analysis.
+
+For public demonstration, I deployed a password-protected version on AWS Lightsail with Docker Compose and Caddy. The public demo uses synthetic GitLab-style projects, developers, merge requests, and review data so that the product flow can be demonstrated without exposing internal company data.
 
 ## 0.1 Current Implementation Status
 
@@ -40,6 +43,7 @@ The goal is not to reduce developer performance to a single activity count. Inst
 | Member-level and project-level score calculation | Evaluation accuracy | RAG-based knowledge retrieval |
 | Dashboard visualization | Prompt improvement | Authentication |
 | AI overall evaluation | System evaluation method | Async processing and job queue |
+| Password-protected AWS demo | Real Gemini API call validation | IaC-based deployment |
 
 This table intentionally includes both completed work and known improvement areas. The project is still being validated, so the important point is to show not only what was built, but also how the system is being improved through feedback and performance analysis.
 

@@ -18,7 +18,7 @@ language: ja
 ## 💼 職務経歴
 
 ### ソフトウェアエンジニア — シャープ株式会社, 大阪 _(2025年4月 – 現在)_
-- **開発者生産性評価システム**: Spring Boot、Next.js、GitLab API、PostgreSQL、Docker Compose、Jenkins、Prometheus、Grafana、Gemini API を用いて、SPACE ベースの生産性指標を算出し、AI による改善提案を生成する PoC プラットフォームを構築。
+- **開発者生産性評価システム**: Spring Boot、Next.js、GitLab API、PostgreSQL、Docker Compose、Jenkins、Prometheus、Grafana、Gemini API を用いて、SPACE ベースの生産性指標を算出し、AI による改善提案を生成する PoC プラットフォームを構築。さらに、合成 GitLab データを用いたパスワード保護付き AWS デモ環境を構築。
 - **会議室管理システム**: Spring Boot と PostgreSQL を用いた分析ダッシュボードを開発。Grafana と DataTables を組み合わせ、756 会議室・50 万件以上の利用データに対して 7 種類の統計分析を 10 秒以内で実行。
 - **QRCode プラットフォーム**: 2 万人以上の社内従業員向け Flutter アプリを構築。セキュアな WebView 認証、クライアント証明書処理、バックグラウンド更新、Firebase Messaging を実装。
 - **ログモニタリングシステム**: バッチによるログ収集・登録、管理者承認、メール通知を含む社内モニタリングワークフローを実装。
@@ -81,6 +81,7 @@ language: ja
 - Gemini API を統合し、構造化 JSON 出力、High/Middle/Low の bounded scoring、fallback、人による確認を前提としたガードレールを設計。
 - Next.js ダッシュボードで、プロジェクト単位・メンバー単位の生産性指標、AI フィードバック、改善提案を表示。
 - Docker Compose ベースの実行環境、Jenkins デプロイフロー、Spring Boot Actuator、Prometheus、Grafana、Micrometer、PerformanceTimingLog による監視構成を整理。
+- Caddy、Docker Compose、合成 GitLab 風データを用いて、社内データを公開せずに確認できるパスワード保護付き AWS Lightsail デモを構築。
 
 ### [会議室管理システム](/work/5-MeetingRoomsManagmentSystem) _(Spring Boot + PostgreSQL + JavaScript + Grafana)_
 - 会議室の利用状況を監視・概観するための Web ベースのダッシュボードを開発。
