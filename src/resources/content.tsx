@@ -86,7 +86,7 @@ const about: About = {
   },
   calendar: {
     display: true,
-    link: "https://cal.com",
+    link: "https://cal.com/zheng-li-ekpdxz/",
   },
   intro: {
     display: true,
