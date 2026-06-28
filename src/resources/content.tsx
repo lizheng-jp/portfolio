@@ -16,10 +16,7 @@ const newsletter: Newsletter = {
   display: false,
   title: <>Subscribe to {person.firstName}&apos;s Newsletter</>,
   description: (
-    <>
-      I occasionally write about Android, Machine Learning, and share thoughts on the intersection
-      of engineering.
-    </>
+    <>I occasionally write about mobile development, machine learning, and engineering practice.</>
   ),
 };
 
@@ -69,8 +66,8 @@ const home: Home = {
   },
   subline: (
     <>
-      I&apos;m Li Zheng, a software engineer at Sharp Corporation, where I develop Mobile, Web and
-      ML Application.
+      I&apos;m Li Zheng, a software engineer at Sharp Corporation, where I build mobile, web, and
+      machine-learning applications.
     </>
   ),
 };
@@ -96,10 +93,10 @@ const about: About = {
     title: "Introduction",
     description: (
       <>
-        I&apos;m a software engineer with a passion for building amzing applications. I have
-        experience in Android and Machine Learning. I&apos;m currently working at Sharp Corporation.
-        I like to learn new things and I&apos;m always looking for new challenges. Also I will share
-        my experience and thoughts on this website.
+        I&apos;m a software engineer focused on mobile, web, and machine-learning applications. I
+        currently work at Sharp Corporation, where I build production tools, internal systems, and
+        ML-based inspection solutions. I use this website to document projects, technical notes, and
+        lessons learned from real development work.
       </>
     ),
   },
@@ -112,12 +109,19 @@ const about: About = {
         timeframe: "2024 - Present",
         role: "Software and Machine Learning Engineer",
         achievements: [
-          `Using Machine Learning to detect and classify the anomaly in the production line, helped
-            Manufacturing Department to analysis and improve the manufacturing process. Anomaly Detection
-            accuracy increased to 92%, and the classification accuracy increased to 85%.`,
-          `Reconstruction of the Android application, by using MVVM architecture, reduced the
-            complexity of the code by 40%. By implementing an automatic version update mechanism, each
-            update cycle was reduced by 90%.`,
+          `Developed machine-learning solutions for production-line anomaly detection and
+            classification, helping manufacturing teams analyze process issues and improve inspection
+            workflows. The anomaly detection model reached 92% accuracy, and the classification model
+            reached 85% accuracy.`,
+          `Refactored a factory Android application using MVVM architecture, Retrofit, and OkHttp,
+            and implemented an automatic update mechanism for factory devices. This improved
+            maintainability, reduced code complexity by approximately 40%, and reduced each update
+            cycle by approximately 90% compared with manual update work.`,
+          `Built a developer productivity project with Next.js, Spring Boot, Docker, Jenkins, and
+            GitLab API integration to visualize development activity, support SPACE-based metrics,
+            and improve CI/CD deployment workflows.`,
+          `Developed IDMS batch processing features to process hundreds of thousands of log records,
+            improving log aggregation and operational data analysis for internal systems.`,
         ],
         images: [
           // optional: leave the array empty if you don't want to display images
@@ -130,12 +134,12 @@ const about: About = {
         ],
       },
       {
-        company: "ShangHai Golden Bridge Co., Ltd",
+        company: "Shanghai Golden Bridge Co., Ltd.",
         timeframe: "2016 - 2018",
         role: "Software Engineer",
         achievements: [
-          `Participated in the development of multiple Android applications, including a paperless meeting application,
-            an announcement display application, and an access control display application.`,
+          `Developed multiple Android applications, including a paperless meeting app, an
+            announcement display app, and an access-control display app.`,
         ],
         images: [],
       },
@@ -147,11 +151,13 @@ const about: About = {
     institutions: [
       {
         name: "Ritsumeikan University",
-        description: <>Studied image processing, machine learning, data science.(2022.4-2024.3)</>,
+        description: (
+          <>Studied image processing, machine learning, and data science. (2022.4-2024.3)</>
+        ),
       },
       {
-        name: "NanJing Xiaozhuang University",
-        description: <>Studied software engineering(2012.9-2016.7)</>,
+        name: "Nanjing Xiaozhuang University",
+        description: <>Studied software engineering. (2012.9-2016.7)</>,
       },
     ],
   },
@@ -161,14 +167,14 @@ const about: About = {
     skills: [
       {
         title: "Machine Learning",
-        description: <>Image classification, Anomaly Detection, Image Denoise.</>,
+        description: <>Image classification, anomaly detection, and image denoising.</>,
         tags: [
           {
-            name: "Pytorch",
+            name: "PyTorch",
             icon: "pytorch",
           },
           {
-            name: "Tensorflow",
+            name: "TensorFlow",
             icon: "tensorflow",
           },
           {
@@ -177,11 +183,11 @@ const about: About = {
           },
 
           {
-            name: "Numpy",
+            name: "NumPy",
             icon: "numpy",
           },
           {
-            name: "Scipy",
+            name: "SciPy",
             icon: "scipy",
           },
           {
@@ -219,7 +225,7 @@ const about: About = {
       },
       {
         title: "Mobile",
-        description: <>Mobile Application Development.</>,
+        description: <>Mobile application development.</>,
         tags: [
           {
             name: "Java",
