@@ -130,6 +130,16 @@ export async function ProjectPostView({
               {post.metadata.publishedAt && formatDate(post.metadata.publishedAt)}
             </Text>
             <Heading variant="display-strong-m">{post.metadata.title}</Heading>
+            {post.metadata.subtitle && (
+              <Text
+                variant="body-default-l"
+                onBackground="neutral-weak"
+                align="center"
+                style={{ fontStyle: "italic" }}
+              >
+                {post.metadata.subtitle}
+              </Text>
+            )}
             <LanguageSwitcher
               basePath={basePath}
               slug={pathSlug ?? post.slug}
