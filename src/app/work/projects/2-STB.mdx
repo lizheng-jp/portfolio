@@ -1,40 +1,39 @@
 ---
-title: "Anomaly Detection and Classification in Camera modules"
-publishedAt: "2024-12-01"
-summary: ""
-images:
-#   - "/images/projects/project-01/cover-02.jpg"
-  - "/images/projects/ml/2025-02-12-171539.jpg"
+title: "Anomaly Detection for Camera Module Inspection"
+publishedAt: "2026-10-07"
+summary: "An anonymized case study of a segmentation + PatchCore anomaly detection pipeline for manufacturing inspection, and what re-examining its evaluation taught me."
+images: []
 ---
 
 ## Overview
-In this project, I used several machine learning model to detect and classify anomalies in camera modules. The goal was to create a pipeline that detects and classifies anomalies in camera modules. By integrating machine learning models, the accurancy of the detection was increased significantly.
 
-## Key Features
-- **Data Preprocessing**: Developed a custom data preprocessing pipeline that extracts features from the images and prepares them for the machine learning models.Included remove background, resize, and convert to grayscale.
-- **Tabular-Image**:Used a multimodal model that combines tabular and image data to do classification of anomalies.
+At a manufacturing company, I built a visual inspection pipeline that flags anomalous camera module components from production images. The work combined image segmentation, unsupervised anomaly detection, and supervised classification experiments.
 
-## Library Used
-- **Pytorch**: For building the machine learning models.
-- **OpenCV**: For image processing.
-- **Numpy**: For numerical operations.
-- **Pandas**: For tabular data processing.
-- **Faiss**: For similarity search.
+This is an anonymized case study. Product images, data, model weights, and evaluation numbers are intentionally omitted because they belong to the company.
 
-## Tools Used
-- **MLFlow**: For tracking the machine learning models.
-- **Git**: For code version control.
+## Pipeline
 
-## Model Used
-- **Segmentation Anything Model**: Used to remove the background of the images.
-- **Patch Core**: Used to extract features from the good images and sampling the features, then compare the features of the bad images to detect anomalies.
-- **Image and Tabular Model**: Used to do classification and anomaly detection.
+1. **Region extraction**: Production images varied in position, background, and white balance. I used SAM / EfficientSAM with OpenCV post-processing to isolate the component and mask out the background before scoring.
+2. **Anomaly scoring**: PatchCore with a Wide ResNet backbone builds a coreset memory bank of patch features from normal images only; a test image is scored by its nearest-neighbor patch distance, producing both an image score and a heatmap. FAISS handles the nearest-neighbor search.
+3. **Classification experiments**: I also trained ResNet-based classifiers, including a variant that combined image features with device metadata, to compare supervised and unsupervised approaches.
+4. **Experiment tracking**: MLflow recorded parameters, metrics, and misclassified samples.
 
-## Challenges and Learnings
-- **Image background removal**: Since the images of the camera modules were taken in different environments, the background of the images was different(like position and white balance). This made it difficult to extract features from the images.
-- **Model Selection**: Selecting the right machine learning model was a challenge. I tried several deep learning models to do classification and anomaly detection.
-- **Development environment**: Since multiple models were used, it is necessary to identify incompatible packages fore replacement and make appropriate modifications to the code.
-- **Labeling**: 
+## Data scale
 
-## Outcome
-- Create a pipeline that detects and classifies anomalies in camera modules. The accurancy of Anomaly Detection has arrived to 92%.
+Around 6,000 production images from 14 inspection devices across two collection periods, labeled good or defective.
+
+## What re-examining the evaluation taught me
+
+When I later reviewed the experiments, I found that the early evaluation was more optimistic than it should have been:
+
+- **Random image-level splits** put images from the same production lot and device into both training and test sets, so the test set did not represent new production data.
+- **The decision threshold was chosen on the test set itself**, which inflates accuracy and F1.
+- **Device metadata as a model input** can let a classifier learn device-specific shortcuts instead of defect appearance.
+
+Re-evaluating with lot-disjoint splits, a threshold selected only on validation data, and a later production batch as the test set gave much weaker results. The main lesson: in manufacturing inspection, evaluation design — how data is split across lots, devices, and time — matters as much as model choice.
+
+I am applying this lesson in a public reimplementation of the pipeline on open industrial anomaly detection datasets.
+
+## Tech stack
+
+PyTorch, SAM / EfficientSAM, PatchCore, Wide ResNet, ResNet, FAISS, OpenCV, NumPy, Pandas, MLflow

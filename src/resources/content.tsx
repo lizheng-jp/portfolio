@@ -5,7 +5,7 @@ const person: Person = {
   firstName: "Zheng",
   lastName: "LI",
   name: "Zheng Li",
-  role: "Software and ML Engineer",
+  role: "Software Engineer | Applied AI",
   avatar: "/images/avatar.jpg",
   email: "eric.lizheng@outlook.com",
   location: "Asia/Tokyo", // Expecting the IANA time zone identifier, e.g., 'Europe/Vienna'
@@ -50,7 +50,7 @@ const home: Home = {
   label: "Home",
   title: `${person.name}'s Portfolio`,
   description: `Portfolio website showcasing my work as a ${person.role}`,
-  headline: <>Software and ML engineer</>,
+  headline: <>Software engineer building applied AI systems</>,
   featured: {
     display: false,
     title: (
@@ -66,8 +66,8 @@ const home: Home = {
   },
   subline: (
     <>
-      I&apos;m Li Zheng, a software engineer at Sharp Corporation, where I build mobile, web, and
-      machine-learning applications.
+      I&apos;m Li Zheng, a software engineer at Sharp Corporation. I build backend, web,
+      and applied AI systems, with a focus on evidence, evaluation, and reliability.
     </>
   ),
 };
@@ -93,9 +93,9 @@ const about: About = {
     title: "Introduction",
     description: (
       <>
-        I&apos;m a software engineer focused on mobile, web, and machine-learning applications. I
-        currently work at Sharp Corporation, where I build production tools, internal systems, and
-        ML-based inspection solutions. I use this website to document projects, technical notes, and
+        I&apos;m a software engineer focused on backend, web, and applied AI systems. I
+        currently work at Sharp Corporation, where I build internal tools and ML-based inspection
+        solutions. My personal Dev Productivity Signals project explores bounded tool calling and evidence retrieval. I use this website to document projects, technical notes, and
         lessons learned from real development work.
       </>
     ),

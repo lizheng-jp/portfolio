@@ -1,0 +1,31 @@
+---
+title: "Dev Productivity Signals: Evidence-Grounded AI Agent for Developer Productivity"
+subtitle: "A full-stack demo with bounded tool calling and project evidence retrieval"
+publishedAt: "2026-09-29"
+summary: "Spring Boot and Next.js demo combining developer metrics, Gemini tool calling, and a Qdrant index of GitHub project discussions, with explicit limits on evidence coverage."
+images: []
+tag: "Applied AI, Agent, Tool Calling, RAG, Qdrant, Spring Boot, Next.js, AWS"
+language: en
+team: []
+---
+
+## What I built
+
+Dev Productivity Signals is a personal project exploring how engineering activity can be examined with metrics and traceable evidence. Its Spring Boot API and Next.js dashboard calculate and display project metrics; a separate Python service lets visitors ask questions about a selected GitHub project. The demo uses synthetic GitLab-style data for its core dashboard. Signals Agent's real-project path uses the configured GitHub integration and requires API credentials and a manually populated evidence index.
+
+## Applied AI architecture
+
+1. Signals Agent calls bounded API tools for project metrics, period comparisons, member metrics, pull request metadata, and merge lead-time distributions. It does not query PostgreSQL directly.
+2. For explanatory questions, it searches a project- and branch-scoped Qdrant index of GitHub pull request descriptions and discussions, issue descriptions, and selected comments. Gemini embeddings support semantic retrieval. The index excludes source code, saved AI analyses, and productivity scores.
+3. Gemini receives structured tool responses and retrieved evidence. The prompt requires citations to original GitHub URLs and separation of measured facts from interpretation. The service caps each request at five tool calls, six model turns, and 240 seconds.
+
+The retrieval layer returns evidence, not a generated answer. Search reports weak matches and incomplete coverage so the Agent can state when a cause is unproven. Index refresh is manual; ordinary questions use the existing index. The source scan and comments are bounded, so an indexed project is not necessarily fully covered.
+
+## Engineering choices and verification
+
+- **Reliability and latency:** The Agent is an optional Compose profile behind Spring's feature flag and internal key. Prometheus/Grafana track failure ratio and P95 request/tool latency. These are observability mechanisms, not published latency results.
+- **Cost:** Incremental indexing reuses unchanged embeddings and limits GitHub requests. Tool and model-call budgets cap individual questions. There is no measured total-cost reduction for Signals Agent yet.
+- **Evaluation:** The repository includes unit tests and five repeatable real-project questions covering review wait, merge lead time, PR bottlenecks, issues, and approvals. They are a regression harness; real-project retrieval precision and answer accuracy are not yet established.
+- **Deployment:** Docker Compose and GitHub Actions configure deployment to an AWS Lightsail host. Agent and Qdrant are optional services with resource limits. The repository configuration does not by itself prove the Agent is currently enabled on the live site.
+
+The strongest lesson from this project is that an AI explanation needs measured values, traceable source text, and visible uncertainty. GitHub discussion can suggest a reason for a metric change, but it cannot establish causality on its own.
