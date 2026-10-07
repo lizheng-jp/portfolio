@@ -22,7 +22,8 @@ The work described here is an anonymized engineering case study. Organization na
 | Fallback path | Standard API analysis when a required result is not yet available |
 | Operating model | Historical backfill followed by weekly incremental analysis |
 | Verified result | Moving the workload to the Batch API eliminated the earlier synchronous HTTP timeout in actual tests |
-| Still being validated | End-to-end cost reduction, representative project selection, and comparative analysis accuracy |
+| Scoped estimates | About 50% lower estimated API cost for the evaluated MR workload (usage records and pricing, Batch API with shared prompt caching); about 30% higher agreement with human review on manually checked samples after prompt revision |
+| Still being validated | Measured end-to-end system cost, representative project selection, and independent vs. grouped analysis accuracy |
 
 ## Problem
 
@@ -94,7 +95,7 @@ This is an offline-precomputation plus online-compensation pattern. Most work ca
 
 | Dimension | Decision and rationale | Current evidence |
 |---|---|---|
-| Cost | Move most analysis to the Batch API and reuse stored results; keep Standard API use limited to gaps | Batch processing has lower published unit pricing; actual end-to-end savings are still being measured |
+| Cost | Move most analysis to the Batch API and reuse stored results; keep Standard API use limited to gaps | Estimated API cost about 50% lower for the evaluated workload; measured end-to-end savings are still being validated |
 | Reliability | Remove long model execution from the synchronous HTTP lifecycle | The previous timeout was eliminated in actual Batch API tests |
 | Accuracy | Analyze each MR as an independent unit to reduce cross-MR contextual influence | Design rationale only; comparative accuracy validation is ongoing |
 | Latency | Accept delayed completion for precomputation while retaining an immediate fallback when downstream work cannot wait | Architecture implemented as primary and fallback paths; operating thresholds are still being refined |
@@ -118,6 +119,8 @@ The schedule is deliberately treated as an operating parameter rather than a per
 
 The concrete result verified so far is reliability-related: after moving the long-running work to the asynchronous Batch API path, the synchronous HTTP timeout observed in the previous multi-MR flow was eliminated in actual tests.
 
+Two scoped estimates are also available. A comparison using usage records and pricing for the evaluated MR workload indicated about 50% lower estimated API cost than the previous approach, after combining the Batch API with shared prompt caching. Separately, revising the prompts improved agreement with human review by about 30% on manually checked samples. Both figures apply to those evaluations only; they are not system-wide measurements.
+
 This result is intentionally narrower than claiming that the entire system is faster or cheaper. Batch processing changes when results become available, so total latency must be evaluated in the context of scheduled precomputation rather than compared only as request-response time.
 
 ## Ongoing Validation
@@ -130,7 +133,7 @@ The following work remains in progress:
 - Monitor how often weekly processing leaves a gap that triggers the real-time fallback.
 - Refine scheduling and failure-handling rules based on observed workload patterns.
 
-No numerical total-cost reduction or accuracy improvement is presented as a completed result until this validation is finished.
+Beyond the scoped estimates above, no system-wide cost reduction or comparative accuracy result is presented as completed until this validation is finished.
 
 ## Lessons Learned
 
