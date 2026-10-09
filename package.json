@@ -2,7 +2,9 @@
   "name": "@once-ui-system/magic-portfolio",
   "version": "2.3.0",
   "scripts": {
+    "predev": "node scripts/build-ask-corpus.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/build-ask-corpus.mjs",
     "export": "next export",
     "build": "next build",
     "biome-write": "npx @biomejs/biome format --write .",

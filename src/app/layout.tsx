@@ -14,7 +14,7 @@ import {
   RevealFx,
   SpacingToken,
 } from "@once-ui-system/core";
-import { Footer, Header, RouteGuard, Providers } from "@/components";
+import { AskWidget, Footer, Header, RouteGuard, Providers } from "@/components";
 import { baseURL, effects, fonts, style, dataStyle, home } from "@/resources";
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
@@ -166,6 +166,7 @@ export default async function RootLayout({
             </Flex>
           </Flex>
           <Footer />
+          <AskWidget />
         </Column>
       </Providers>
       <Analytics />
