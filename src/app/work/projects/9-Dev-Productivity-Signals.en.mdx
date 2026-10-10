@@ -24,9 +24,9 @@ The retrieval layer returns evidence, not a generated answer. Search reports wea
 ## Engineering choices and verification
 
 - **Reliability and latency:** The Agent is an optional Compose profile behind Spring's feature flag and internal key. Prometheus/Grafana track failure ratio and P95 request/tool latency. These are observability mechanisms, not published latency results.
-- **Cost:** Incremental indexing reuses unchanged embeddings and limits GitHub requests. Tool and model-call budgets cap individual questions. There is no measured total-cost reduction for Signals Agent yet.
+- **Cost:** Incremental indexing reuses unchanged embeddings and limits GitHub requests. Tool and model-call budgets cap individual questions. A question costs about US$0.02 on `gemini-3.8-flash`, so the public demo allows 10 questions per hour per client and 200 per day in total, one at a time. There is no measured total-cost reduction for Signals Agent yet.
 - **Evaluation:** Besides unit tests and five repeatable regression questions, retrieval and answers were measured on one real project in October 2026. See the next section for the method, results, and limits.
-- **Deployment:** Docker Compose and GitHub Actions configure deployment to an AWS Lightsail host. Agent and Qdrant are optional services with resource limits. The repository configuration does not by itself prove the Agent is currently enabled on the live site.
+- **Deployment:** Docker Compose and GitHub Actions configure deployment to an AWS Lightsail host. Agent and Qdrant are optional services with resource limits. Since October 11, 2026 the public demo runs the configuration chosen in the evaluation below (`gemini-3.8-flash`, open tool policy, evidence-only answers); a live question that day returned an answer with it.
 
 ## Evaluation results (October 2026)
 
@@ -59,10 +59,22 @@ Codex graded the answers without knowing which policy wrote them. I graded 15 of
 - An independent second annotator mattered more than a model change. First-pass labels had counted comments that only asked or pinged and missed answers deep in long sources; correcting the labels moved recall@3 from 0.76 to 0.84 and removed an apparent ranking problem.
 - The insufficient-evidence cut-off of 0.40, set for Gemini embeddings, flagged none of the 20 unanswerable questions with bge, whose unrelated text scores around 0.6. Thresholds are now set per embedding model.
 - The index sampled only the first page of recently updated items, so 66 of 123 sources came from the window's last 8 days. Indexing now samples the whole window by creation month.
-- With a newer model, the original tool guards ended 49 of 55 requests in errors. The open policy still fails 19 (11 exceed the five-call budget, 5 repeat a tool call), and on 8 of 15 unanswerable questions it adds general knowledge that no source supports, once contradicting the source. These are the next fixes.
+- With a newer model, the original tool guards ended 49 of 55 requests in errors. The open policy still fails 19 (11 exceed the five-call budget, 5 repeat a tool call), and on 8 of 15 unanswerable questions it adds general knowledge that no source supports, once contradicting the source. Round 2 below addresses both.
+
+**Round 2: fail gracefully, decline without evidence.** Two changes were added one at a time. First, tool limits became feedback: an over-budget or repeated call gets an error or the earlier result as its tool response, and the model must then answer from what it has. Second, an instruction not to fill missing evidence with general knowledge. All three runs were graded together under the same rules, blind to configuration, with GitHub metadata for every PR the answers mention; my spot-check of 15 agreed with the grader on every key fact and decline and on 12 of 15 unsupported-claim calls.
+
+| Metric | Open policy | + Feedback | + Evidence-only |
+|---|---|---|---|
+| Answerable questions answered | 21 / 35 | 33 / 35 | 33 / 35 |
+| Key-fact recall over all 35 | 0.49 | 0.76 | 0.76 |
+| Unanswerable questions declined (of 20) | 7 | 12 | 18 |
+| Unanswerable answers padded with general knowledge | 9 / 15 | 10 / 20 | 2 / 19 |
+| Answerable questions wrongly declined | 0 | 0 | 1 |
+
+Feedback raised key-fact recall by 0.27 (paired 95% CI 0.13 to 0.41). The evidence-only instruction left recall unchanged (CI -0.06 to +0.05) and cut padding on unanswerable questions, at the cost of one wrong decline. About a third of answers to answerable questions still add general knowledge in their interpretation and recommendations; that is the next fix. This round cost about US$2.5 in model calls.
 
 The questions, labels, answers, grades and scripts are in the repository: [eval/README.md](https://github.com/lizheng-jp/dev-productivity-signals/blob/main/eval/README.md).
 
-**Limits.** This covers one repository and 55 lookup questions written after reading the sources, not the Agent's main task of explaining metric changes. The per-model thresholds were chosen on the same questions, so their figures are optimistic. Graders are language models checked against each other, not domain experts.
+**Limits.** This covers one repository and 55 lookup questions written after reading the sources, not the Agent's main task of explaining metric changes. The per-model thresholds were chosen on the same questions, so their figures are optimistic. Graders are language models checked against each other, not domain experts. Production retrieves with Gemini embeddings rather than the local model evaluated here.
 
 The strongest lesson from this project is that an AI explanation needs measured values, traceable source text, and visible uncertainty. GitHub discussion can suggest a reason for a metric change, but it cannot establish causality on its own.
