@@ -4,7 +4,7 @@ subtitle: "A full-stack demo with bounded tool calling and project evidence retr
 publishedAt: "2026-09-29"
 summary: "Spring Boot and Next.js demo combining developer metrics, Gemini tool calling, and a Qdrant index of GitHub project discussions, with explicit limits on evidence coverage."
 images: []
-tag: "Applied AI, Agent, Tool Calling, RAG, Qdrant, Spring Boot, Next.js, AWS"
+tag: "Applied AI, Agent, Tool Calling, RAG, Evaluation, Qdrant, Spring Boot, Next.js, AWS"
 language: en
 team: []
 ---
@@ -16,7 +16,7 @@ Dev Productivity Signals is a personal project exploring how engineering activit
 ## Applied AI architecture
 
 1. Signals Agent calls bounded API tools for project metrics, period comparisons, member metrics, pull request metadata, and merge lead-time distributions. It does not query PostgreSQL directly.
-2. For explanatory questions, it searches a project- and branch-scoped Qdrant index of GitHub pull request descriptions and discussions, issue descriptions, and selected comments. Gemini embeddings support semantic retrieval. The index excludes source code, saved AI analyses, and productivity scores.
+2. For explanatory questions, it searches a project- and branch-scoped Qdrant index of GitHub pull request descriptions and discussions, issue descriptions, and selected comments. Semantic retrieval uses Gemini embeddings or a local embedding model. The index excludes source code, saved AI analyses, and productivity scores.
 3. Gemini receives structured tool responses and retrieved evidence. The prompt requires citations to original GitHub URLs and separation of measured facts from interpretation. The service caps each request at five tool calls, six model turns, and 240 seconds.
 
 The retrieval layer returns evidence, not a generated answer. Search reports weak matches and incomplete coverage so the Agent can state when a cause is unproven. Index refresh is manual; ordinary questions use the existing index. The source scan and comments are bounded, so an indexed project is not necessarily fully covered.
@@ -25,7 +25,44 @@ The retrieval layer returns evidence, not a generated answer. Search reports wea
 
 - **Reliability and latency:** The Agent is an optional Compose profile behind Spring's feature flag and internal key. Prometheus/Grafana track failure ratio and P95 request/tool latency. These are observability mechanisms, not published latency results.
 - **Cost:** Incremental indexing reuses unchanged embeddings and limits GitHub requests. Tool and model-call budgets cap individual questions. There is no measured total-cost reduction for Signals Agent yet.
-- **Evaluation:** The repository includes unit tests and five repeatable real-project questions covering review wait, merge lead time, PR bottlenecks, issues, and approvals. They are a regression harness; real-project retrieval precision and answer accuracy are not yet established.
+- **Evaluation:** Besides unit tests and five repeatable regression questions, retrieval and answers were measured on one real project in October 2026. See the next section for the method, results, and limits.
 - **Deployment:** Docker Compose and GitHub Actions configure deployment to an AWS Lightsail host. Agent and Qdrant are optional services with resource limits. The repository configuration does not by itself prove the Agent is currently enabled on the live site.
+
+## Evaluation results (October 2026)
+
+I evaluated the Agent in two layers, retrieval and answers, on `prometheus/prometheus` discussions from July 11 to October 8, 2026: 123 indexed sources from 40 pull requests and 10 issues. The 55 questions are lookups about those discussions: 35 have an answer in the sources (20 reworded, 15 reusing source terms) and 20 do not (8 of them close to indexed topics).
+
+**Labels.** Relevant sources and reference answers were written twice, independently: once by Claude, once by OpenAI Codex given only shuffled questions, the source texts and written rules. Agreement on query-source relevance was Cohen's kappa 0.87, and both agreed which questions were answerable. The 15 disagreements were settled against the written rules. Each answerable question has 2 to 4 key facts (91 in total) that a correct answer must state.
+
+**Retrieval** (local `bge-base-en-v1.5` embeddings, top 8, at most 2 sources per PR or issue):
+
+| Metric | Result |
+|---|---|
+| Recall@3 | 0.84 (95% bootstrap CI 0.75 to 0.92) |
+| MRR | 0.89, against 0.04 for random ranking |
+| Right PR or issue in the top 3 | 0.97 |
+| Qwen3-Embedding-0.6B vs bge-base, MRR difference | +0.02 (CI -0.07 to +0.11): no measurable difference, about 40 times slower on CPU |
+
+**Answers** (`gemini-3.8-flash`, same 55 questions). I compared the original tool policy, which required a metrics call before any evidence search and allowed each tool once, with an open policy that lets the model search first and search again with another query:
+
+| Metric | Original policy | Open policy |
+|---|---|---|
+| Answerable questions answered | 3 / 35 | 21 / 35 |
+| Key-fact recall over all 35 (no answer = 0) | 0.02 | 0.50 (CI 0.35 to 0.65) |
+| Key-fact recall of answers given | 0.25 | 0.83 |
+| Unanswerable questions declined | 1 of 3 answered | 9 of 15 answered |
+
+Codex graded the answers without knowing which policy wrote them. I graded 15 of them independently: we agreed on every key fact being stated or not and on every decline. We disagreed on unsupported claims, because the grading package omitted the pull request metadata the Agent reads from GitHub tools; sampled metadata matched GitHub, so it is not counted as unsupported. The Gemini spend for these runs was about US$1.3.
+
+**What the evaluation changed.**
+
+- An independent second annotator mattered more than a model change. First-pass labels had counted comments that only asked or pinged and missed answers deep in long sources; correcting the labels moved recall@3 from 0.76 to 0.84 and removed an apparent ranking problem.
+- The insufficient-evidence cut-off of 0.40, set for Gemini embeddings, flagged none of the 20 unanswerable questions with bge, whose unrelated text scores around 0.6. Thresholds are now set per embedding model.
+- The index sampled only the first page of recently updated items, so 66 of 123 sources came from the window's last 8 days. Indexing now samples the whole window by creation month.
+- With a newer model, the original tool guards ended 49 of 55 requests in errors. The open policy still fails 19 (11 exceed the five-call budget, 5 repeat a tool call), and on 8 of 15 unanswerable questions it adds general knowledge that no source supports, once contradicting the source. These are the next fixes.
+
+The questions, labels, answers, grades and scripts are in the repository: [eval/README.md](https://github.com/lizheng-jp/dev-productivity-signals/blob/main/eval/README.md).
+
+**Limits.** This covers one repository and 55 lookup questions written after reading the sources, not the Agent's main task of explaining metric changes. The per-model thresholds were chosen on the same questions, so their figures are optimistic. Graders are language models checked against each other, not domain experts.
 
 The strongest lesson from this project is that an AI explanation needs measured values, traceable source text, and visible uncertainty. GitHub discussion can suggest a reason for a metric change, but it cannot establish causality on its own.
