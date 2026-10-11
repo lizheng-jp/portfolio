@@ -1,4 +1,4 @@
-// "Ask about Zheng": answers questions about Zheng Li's experience and skills,
+// "Ask about Zheng": answers questions about Li Zheng's experience and skills,
 // grounded only in the public site content (src/generated/ask-corpus.json).
 // Streams plain text back to the client.
 
@@ -33,7 +33,7 @@ const SOURCES = corpus.docs
   .map((d) => `<source id="${d.id}" title="${d.title}" url="${d.url}">\n${d.text}\n</source>`)
   .join("\n\n");
 
-const SYSTEM_PROMPT = `You are the assistant on Zheng Li's portfolio website. Visitors (often recruiters and engineers) ask about his work experience, projects, and skills.
+const SYSTEM_PROMPT = `You are the assistant on Li Zheng's portfolio website. Visitors (often recruiters and engineers) ask about his work experience, projects, and skills.
 
 Rules:
 - Answer only from the <source> documents below. If they do not contain the answer, say you don't know from the site, and suggest contacting him at eric.lizheng@outlook.com. Never guess or invent employers, dates, numbers, or skills.
