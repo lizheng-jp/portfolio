@@ -10,7 +10,7 @@ language: en
 **Software Engineer | Applied AI — LLM Applications & Computer Vision**
 
 📍 Osaka, Japan (relocating to Tokyo) • 📧 eric.lizheng@outlook.com  
-[GitHub](https://github.com/1994ericlee) | [LinkedIn](https://www.linkedin.com/in/zheng-li-a30068293/)
+[GitHub](https://github.com/lizheng-jp) | [LinkedIn](https://www.linkedin.com/in/zheng-li-a30068293/)
 
 Software engineer with 5 years of experience building applied AI systems on two tracks: LLM applications (RAG, tool-calling agents, structured output with Gemini) and computer vision (anomaly detection, segmentation; M.Sc. research on complex-valued neural networks). Backend, web, and mobile engineering experience lets me take AI from prototype to a maintainable, observable system.
 
@@ -38,12 +38,17 @@ Software engineer with 5 years of experience building applied AI systems on two 
 
 ---
 
-## 📂 Personal Project
+## 📂 Personal Projects
 
 ### [Dev Productivity Signals](/work/9-Dev-Productivity-Signals/en) _(Spring Boot + Next.js + Python + Gemini + Qdrant)_
 - Built Signals Agent, an LLM agent (Gemini function calling + RAG) that reads developer metrics through bounded API tools and retrieves GitHub PR and issue discussions from a project- and branch-scoped Qdrant vector index, citing original sources.
 - Capped each question at 5 tool calls, 6 model turns, and 240 seconds; flagged weak or incomplete evidence instead of asserting causes.
 - Added P95 latency and failure-rate monitoring with Prometheus and Grafana, and incremental indexing that reuses unchanged embeddings. Deployed with Docker Compose and GitHub Actions to AWS Lightsail.
+
+### [Vision: Leakage-Free Visual Anomaly Detection](/work/10-Vision-Anomaly-Lab/en) _(PyTorch + PatchCore + SAM + Docker)_
+- Rebuilt my manufacturing inspection pipeline on the public VisA dataset with a leakage-free protocol (normal-only training, per-label val/test split, thresholds chosen on validation only): 0.902 mean image AUROC and 0.981 pixel AUROC over 12 categories.
+- Ran a SAM foreground-masking ablation: up to +0.16 image AUROC on macaroni, but −0.03 on fryum and capsules. On the live demo model, masking cut false alarms from 38 to 23 of 50 while missed defects rose from 6 to 9; the page shows the counterexample.
+- Shipped a bilingual live demo ([vision.lizheng.cc](https://vision.lizheng.cc/)) with CPU inference, held-out score charts and interactive EfficientSAM masking, on Docker and Caddy on AWS Lightsail.
 
 ---
 
