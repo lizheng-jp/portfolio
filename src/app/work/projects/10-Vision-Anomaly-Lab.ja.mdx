@@ -1,0 +1,71 @@
+---
+title: "Vision：データリークのない外観異常検知（VisA）"
+subtitle: "厳密な評価手順による PatchCore、SAM マスクのアブレーション、公開デモ"
+publishedAt: "2026-10-11"
+summary: "製造現場の外観検査パイプラインを公開データセット VisA で作り直し、12 カテゴリでのリークのない評価、SAM 前景マスクの効果と副作用の検証、日英対応の公開デモをまとめました。"
+images: []
+tag: "Computer Vision, Anomaly Detection, PatchCore, SAM, Evaluation, PyTorch, Docker, AWS"
+language: ja
+team: []
+---
+
+## 作った理由
+
+[カメラモジュールの外観検査](/work/2-STB)では、モデルと同じくらい評価設計が重要だと学びました。画像単位のランダム分割や、テストデータで調整したしきい値により、初期の結果は実際より良く見えていました。Vision では同じ考え方（PatchCore による異常スコアと SAM による前景マスク）を公開データセット [VisA](https://github.com/amazon-science/spot-diff) でゼロから作り直し、これらの問題が起きない評価手順にしています。
+
+**公開デモ：** [vision.lizheng.cc](https://vision.lizheng.cc/?lang=ja)（日本語 / English） · **ソースコード：** [github.com/lizheng-jp/patchcore-visa](https://github.com/lizheng-jp/patchcore-visa)
+
+## 評価手順
+
+- 公式の正常画像のみの学習データで学習します。
+- 公式テストセットをカテゴリごと・ラベルごとに検証用とテスト用に分割します（seed 固定）。
+- 判定しきい値は検証データだけで選び（F1 最大または Youden J）、テストには一度だけ適用します。
+- しきい値に依存しない画像 AUROC（論文と比較可能）と、しきい値適用後の再現率・特異度・F1 を報告します。ラベル 1 は常に異常を表します。
+
+## 結果（12 カテゴリ、seed 1 つ）
+
+| 指標 | 値 |
+|---|---|
+| 画像 AUROC | **0.902** |
+| 画素 AUROC | **0.981** |
+| 事後的な SAM マスク適用時の画像 AUROC | 0.905 → **0.931** |
+| 1 枚あたりの推論時間 | GPU 7–15 ms、CPU 1.1–2.2 秒 |
+
+単一物体のカテゴリは画像 AUROC 0.97–0.99 に達します。弱点は複数物体のカテゴリ（capsules、macaroni）です。画素 AUROC は高く欠陥の位置は特定できていますが、画像スコアが主に背景にある正常領域の高スコアに引きずられます。
+
+## SAM マスクは効くか：効く場合もあるが、代償もある
+
+<img src="/images/projects/vision/sam_tradeoff.png" alt="カテゴリごとの SAM マスクによる改善量と欠陥カバー率" style={{ width: '100%', height: 'auto' }} />
+
+SAM の前景内だけで採点すると、画像 AUROC は macaroni2 で +0.16、macaroni1 で +0.13 改善しました。一方で fryum と capsules では約 0.03 低下しました。SAM が欠陥の一部を切り落としたり、接触した物体を分割したりしたためです。欠陥カバー率だけでは結果を予測できないため、マスクを導入する前にカテゴリごとの品質確認が必要です。
+
+公開デモのモデルでも、訪問者と同じ使い方で再検証しました。検証・テストの全 200 枚で各パスタに EfficientSAM の提示点を 1 つずつ置き、しきい値はそれぞれ検証データで選びました。
+
+| Macaroni2・未使用テスト | 全画像 | SAM 前景 |
+|---|---|---|
+| 画像 AUROC | 0.634 | **0.797** |
+| 誤検出（正常 50 枚中） | 38 | **23** |
+| 見逃し（異常 50 枚中） | **6** | 9 |
+
+<img src="/images/projects/vision/macaroni2-false-alarm-removed.jpg" alt="誤検出の解消：最高スコアはパスタではなくマット上にあった" style={{ width: '100%', height: 'auto' }} />
+
+*誤検出の解消：最高スコアの画素（白丸）はマット上の小さな点でした。マスク内ではしきい値を下回ります。*
+
+<img src="/images/projects/vision/macaroni2-counterexample.jpg" alt="反例：背景が原因で異常と判定されていた異常画像" style={{ width: '100%', height: 'auto' }} />
+
+*反例：この異常画像は、マスク前は背景が原因で異常と判定されていました。マスクは欠陥全体（赤線）を残していますが、欠陥だけのスコアはしきい値未満です。見逃しが 6 件から 9 件に増えたのは、このような画像のためです。*
+
+## デモの実装
+
+- 実際の PatchCore（Wide ResNet-50、正常画像 200 枚の特徴庫）と EfficientSAM を CPU で動かす Python 推論サーバー。一度に読み込むモデルは 1 つです。
+- ヒートマップの色範囲はカテゴリごとに固定し、画像間で色を比較できるようにしました。すべての未使用テスト画像のスコアを、検証データで選んだしきい値とともに表示します。
+- 同梱サンプルは最も簡単な画像ではなく、正しく判定された典型的なテスト画像（20 / 50 / 80 パーセンタイル）です。誤判定はスコアのグラフにすべて表示しています。
+- モデルを読み取り専用でマウントし、メモリと CPU を制限した Docker イメージを、AWS Lightsail 上の Caddy の背後で運用しています。アップロード画像はメモリ内で処理し、保存しません。
+
+## 限界と今後
+
+結果は seed 1 つのみで、±0.02 程度の差は過大に解釈できません。seed 1–2、学習前の入力マスク、小さい backbone、coreset 比率、512 px 解像度の実験はスクリプト化済みですが、まだ実行していません。
+
+## 技術スタック
+
+PyTorch, anomalib (PatchCore), Wide ResNet-50, SAM / EfficientSAM, OpenCV, scikit-learn, NumPy, Python HTTP server, Docker, Caddy, AWS Lightsail

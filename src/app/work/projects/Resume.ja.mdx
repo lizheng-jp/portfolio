@@ -10,7 +10,7 @@ language: ja
 **ソフトウェアエンジニア | Applied AI（生成AI・LLM／画像AI）**
 
 📍 大阪府（東京へ転居予定） • 📧 eric.lizheng@outlook.com  
-[GitHub](https://github.com/1994ericlee) | [LinkedIn](https://www.linkedin.com/in/zheng-li-a30068293/)
+[GitHub](https://github.com/lizheng-jp) | [LinkedIn](https://www.linkedin.com/in/zheng-li-a30068293/)
 
 開発経験 5 年のソフトウェアエンジニアです。生成AI（Gemini を用いた RAG、Tool Calling Agent、構造化出力）と画像AI（異常検知、セグメンテーション、大学院での複素数ニューラルネットワーク研究）の 2 領域で Applied AI システムを構築しています。バックエンド・Web・モバイル開発の経験を活かし、AI を PoC で終わらせず、保守・監視可能なシステムとして実装します。
 
@@ -45,6 +45,10 @@ language: ja
 - 1 回の質問を Tool 呼び出し 5 回・モデル応答 6 回・240 秒に制限し、根拠が弱い場合や不完全な場合は原因を断定せずその旨を提示。
 - Prometheus・Grafana による P95 応答時間と失敗率の監視、変更のない Embedding を再利用する差分インデックス更新を実装。Docker Compose と GitHub Actions で AWS Lightsail にデプロイ。
 
+### [Vision：データリークのない外観異常検知](/work/10-Vision-Anomaly-Lab/ja) _(PyTorch + PatchCore + SAM + Docker)_
+- 製造現場の外観検査パイプラインを公開データセット VisA で作り直し、リークのない評価手順（正常画像のみで学習、ラベルごとの検証/テスト分割、しきい値は検証データのみで選択）で 12 カテゴリ平均の画像 AUROC 0.902、画素 AUROC 0.981 を達成。
+- SAM 前景マスクのアブレーションを実施。macaroni で画像 AUROC が最大 +0.16 改善した一方、fryum と capsules では −0.03 低下。公開デモのモデルではマスクにより誤検出が 50 枚中 38 → 23 件に減り、見逃しは 6 → 9 件に増加。反例もページで公開。
+- CPU 推論、未使用テストのスコア分布、EfficientSAM の対話的マスクを備えた日英対応の公開デモ（[vision.lizheng.cc](https://vision.lizheng.cc/?lang=ja)）を、AWS Lightsail 上の Docker と Caddy で運用。
 ---
 
 ## 🎓 学歴
