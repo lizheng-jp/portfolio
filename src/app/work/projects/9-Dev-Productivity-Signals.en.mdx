@@ -73,8 +73,22 @@ Codex graded the answers without knowing which policy wrote them. I graded 15 of
 
 Feedback raised key-fact recall by 0.27 (paired 95% CI 0.13 to 0.41). The evidence-only instruction left recall unchanged (CI -0.06 to +0.05) and cut padding on unanswerable questions, at the cost of one wrong decline. About a third of answers to answerable questions still add general knowledge in their interpretation and recommendations; that is the next fix. This round cost about US$2.5 in model calls.
 
+**Main task: "why did this metric change?"** The lookups above test retrieval, not the question the Agent exists for. I wrote 18 such questions for the production setup: 10 plain changes, 5 with a false premise (asking why commits dropped when they rose), 2 about an implausible value (a mean bug-fix lead time of several years) and 1 about a flat metric. These have no reference answer, so each answer is checked for properties against the tool results it actually received, recorded through a trace field that only evaluation requests can set. A program checks every number and citation; Codex graded the language properties, I graded 10 independently first, and every point where we disagreed was settled against the full trace.
+
+| Check | Result |
+|---|---|
+| Stated numbers found in, or computed from, the evidence | 404 / 404 |
+| Cited PRs and issues present in the evidence | all |
+| Direction of change stated correctly | 18 / 18 |
+| False premise corrected | 5 / 5 |
+| Causes asserted without evidence | 0 / 18 |
+| Limits of the evidence stated | 17 / 18 |
+| Implausible value questioned | 0 / 2 |
+
+The Agent reports measured changes faithfully and does not invent causes. It never questions an implausible value, though: it explains a multi-year bug-fix lead time as a few long-lived fixes. That needs a plausibility flag in the tool output rather than a prompt change. Adjudication also caught a fault in my own grading package, which cut evidence at 1,500 characters and made 2 supported figures look invented. 18 questions are a smoke test: 0 of 18 still allows a rate of about 17%.
+
 The questions, labels, answers, grades and scripts are in the repository: [eval/README.md](https://github.com/lizheng-jp/dev-productivity-signals/blob/main/eval/README.md).
 
-**Limits.** This covers one repository and 55 lookup questions written after reading the sources, not the Agent's main task of explaining metric changes. The per-model thresholds were chosen on the same questions, so their figures are optimistic. Graders are language models checked against each other, not domain experts. Production retrieves with Gemini embeddings rather than the local model evaluated here.
+**Limits.** This covers one repository: 55 lookup questions written after reading the sources and 18 main-task questions. The per-model thresholds were chosen on the same questions, so their figures are optimistic. Graders are language models checked against each other, not domain experts. Production retrieves with Gemini embeddings rather than the local model evaluated here.
 
 The strongest lesson from this project is that an AI explanation needs measured values, traceable source text, and visible uncertainty. GitHub discussion can suggest a reason for a metric change, but it cannot establish causality on its own.
