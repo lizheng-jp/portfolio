@@ -1,8 +1,8 @@
 ---
-title: "Vision: Leakage-Free Visual Anomaly Detection on VisA"
-subtitle: "PatchCore with a strict evaluation protocol, a SAM masking ablation, and a live demo"
+title: "Vision: SAM Background Removal for Anomaly Detection, Reproduced on VisA"
+subtitle: "A finding from manufacturing inspection, reproduced on public data with a leakage-free evaluation and a live demo"
 publishedAt: "2026-10-11"
-summary: "A public rebuild of my manufacturing inspection pipeline on the VisA dataset: leakage-free evaluation on 12 categories, an honest SAM foreground-masking ablation, and a bilingual live demo."
+summary: "Reproducing on public data what I found in production: when false alarms come from the background, separating the object with SAM makes anomaly detection more accurate. Includes the conditions where it does not hold, and a bilingual live demo."
 images: ["/images/projects/vision/cover.jpg"]
 tag: "Computer Vision, Anomaly Detection, PatchCore, SAM, Evaluation, PyTorch, Docker, AWS"
 language: en
@@ -11,7 +11,9 @@ team: []
 
 ## Why I built it
 
-My [camera module inspection work](/work/2-STB) taught me that evaluation design matters as much as the model: random image-level splits and thresholds tuned on the test set made early results look better than they were. Vision rebuilds the same idea (PatchCore anomaly scoring with optional SAM foreground masking) on the public [VisA](https://github.com/amazon-science/spot-diff) dataset, from scratch, with those mistakes designed out.
+In my [camera module inspection work](/work/2-STB), product images varied in position, background and lighting, and the anomaly detector raised false alarms on the background. Separating the component with SAM before PatchCore scoring improved accuracy. That data belongs to the company, so I could not show the result.
+
+Vision reproduces the finding on the public [VisA](https://github.com/amazon-science/spot-diff) dataset: **in a scenario where the background causes false alarms, does SAM background removal improve anomaly detection, and under what conditions?** A reproduction is only as credible as its evaluation, so the protocol also designs out the mistakes I later found in the original work: random image-level splits and thresholds tuned on the test set.
 
 **Live demo:** [vision.lizheng.cc](https://vision.lizheng.cc/) (English / 日本語) · **Source:** [github.com/lizheng-jp/patchcore-visa](https://github.com/lizheng-jp/patchcore-visa)
 
@@ -33,11 +35,11 @@ My [camera module inspection work](/work/2-STB) taught me that evaluation design
 
 Single-object categories reach 0.97–0.99 image AUROC. Multi-instance categories (capsules, macaroni) are the weak spot: their pixel AUROC stays high, so defects are localized, but the image score is dominated by high-scoring normal regions, mostly in the background.
 
-## Does SAM masking help? Sometimes, and not for free
+## Reproduced where the background causes false alarms, and where it stops
 
 <img src="/images/projects/vision/sam_tradeoff.png" alt="SAM masking gain versus defect coverage per category" style={{ width: '100%', height: 'auto' }} />
 
-Scoring only inside the SAM foreground raised image AUROC by +0.16 on macaroni2 and +0.13 on macaroni1, but lowered it by about 0.03 on fryum and capsules, where SAM cut off parts of defects or split touching objects. Defect coverage alone does not predict the outcome, so mask QA has to be checked per category before shipping masking.
+Macaroni is the scenario that matches the factory case: small objects on a textured mat, where most false alarms are hot spots on the background. There, scoring only inside the SAM foreground raised image AUROC by +0.16 (macaroni2) and +0.13 (macaroni1). Running all 12 categories showed where the claim stops: on fryum and capsules, where SAM cut off parts of defects or split touching objects, AUROC dropped by about 0.03. Defect coverage alone does not predict the outcome, so mask quality has to be checked per product before shipping masking.
 
 On the live demo model I repeated the test the way a visitor uses it: one EfficientSAM point per pasta piece on all 200 validation and test images, with each threshold chosen on validation.
 
